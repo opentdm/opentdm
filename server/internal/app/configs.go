@@ -1,6 +1,7 @@
 package app
 
 import (
+	"bytes"
 	"context"
 
 	"github.com/google/uuid"
@@ -78,40 +79,93 @@ type VarOutput struct {
 	Deleted  bool
 }
 
-// SetItems encrypts and replaces all items at one (config, layer). envSlug "" or
-// "base" targets the base layer.
-func (s *Service) SetItems(ctx context.Context, project model.Project, config model.Config, envSlug string, inputs []VarInput) error {
+// SetItems encrypts and replaces all items at one (config, layer) AND appends a
+// version snapshot — both in one transaction. envSlug "" or "base" targets the
+// base layer. Returns the resulting current version.
+func (s *Service) SetItems(ctx context.Context, project model.Project, config model.Config, envSlug string, inputs []VarInput, comment *string, actor *uuid.UUID) (model.ConfigVersion, error) {
+	if config.ArchivedAt != nil {
+		return model.ConfigVersion{}, ErrConflict
+	}
 	envID, envAAD, err := s.layer(ctx, project.ID, envSlug)
 	if err != nil {
-		return err
+		return model.ConfigVersion{}, err
 	}
-	cipher, err := s.cipherFor(project)
+	cipher, dek, err := s.cipherAndDEK(project)
 	if err != nil {
-		return err
+		return model.ConfigVersion{}, err
 	}
+	defer zero(dek)
 
 	items := make([]store.ItemInput, 0, len(inputs))
+	snap := make([]codec.SnapshotItem, 0, len(inputs))
 	for _, in := range inputs {
 		if !codec.ValidKey(in.Key) {
-			return invalid("key", "invalid variable name: "+in.Key)
+			return model.ConfigVersion{}, invalid("key", "invalid variable name: "+in.Key)
 		}
 		plaintext := in.Value
 		if in.Deleted {
 			plaintext = "" // tombstone carries no value
 		}
-		aad := crypto.ItemAAD(project.ID.String(), envAAD, config.ID.String(), in.Key)
-		ct, err := cipher.Seal([]byte(plaintext), aad)
+		ct, err := cipher.Seal([]byte(plaintext), crypto.ItemAAD(project.ID.String(), envAAD, config.ID.String(), in.Key))
 		if err != nil {
-			return err
+			return model.ConfigVersion{}, err
 		}
 		items = append(items, store.ItemInput{
 			Key: in.Key, ValueCiphertext: ct, DEKVersion: project.DEKVersion,
 			IsSecret: in.IsSecret, Deleted: in.Deleted,
 		})
+		snap = append(snap, codec.SnapshotItem{Key: in.Key, Value: in.Value, IsSecret: in.IsSecret, Deleted: in.Deleted})
 	}
-	return s.store.InTx(ctx, func(q *store.Queries) error {
-		return q.ReplaceItems(ctx, config.ID, envID, items, nil)
+
+	canon, err := codec.CanonicalVarSnapshot(snap)
+	if err != nil {
+		return model.ConfigVersion{}, err
+	}
+	hmac, err := crypto.ContentHMAC(dek, canon)
+	if err != nil {
+		return model.ConfigVersion{}, err
+	}
+	snapCT, err := cipher.Seal(canon, crypto.VersionAAD(project.ID.String(), envAAD, config.ID.String(), model.KindVariable))
+	if err != nil {
+		return model.ConfigVersion{}, err
+	}
+
+	var version model.ConfigVersion
+	err = s.store.InTx(ctx, func(q *store.Queries) error {
+		if err := q.ReplaceItems(ctx, config.ID, envID, items, actor); err != nil {
+			return err
+		}
+		version, err = s.appendVersionDedup(ctx, q, config.ID, envID, hmac, store.VersionInput{
+			SnapshotKind: model.KindVariable, SnapshotCiphertext: snapCT, DEKVersion: project.DEKVersion,
+			ContentHMAC: hmac, ByteSize: int64(len(canon)), Comment: comment, CreatedBy: actor,
+		})
+		return err
 	})
+	if err != nil {
+		if isUniqueViolation(err) {
+			return model.ConfigVersion{}, ErrConflict // concurrent save lost the version-number race
+		}
+		return model.ConfigVersion{}, err
+	}
+	return version, nil
+}
+
+// appendVersionDedup appends a new version unless the layer's current version
+// already has the same content hash (a no-op save), in which case it returns the
+// current version without spamming history. Runs inside the caller's tx.
+func (s *Service) appendVersionDedup(ctx context.Context, q *store.Queries, configID uuid.UUID, envID *uuid.UUID, hmac []byte, in store.VersionInput) (model.ConfigVersion, error) {
+	cur, err := q.GetCurrentVersion(ctx, configID, envID)
+	if err == nil && bytes.Equal(cur.ContentHMAC, hmac) {
+		return cur, nil
+	}
+	if err != nil && err != store.ErrNotFound {
+		return model.ConfigVersion{}, err
+	}
+	n, err := q.NextVersion(ctx, configID, envID)
+	if err != nil {
+		return model.ConfigVersion{}, err
+	}
+	return q.AppendVersion(ctx, configID, envID, n, in)
 }
 
 // GetItems returns decrypted items at one (config, layer) for the editor.

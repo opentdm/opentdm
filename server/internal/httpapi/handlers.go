@@ -14,15 +14,16 @@ type Handlers struct {
 	svc           *app.Service
 	logger        *slog.Logger
 	secureCookies bool
+	maxBlobBytes  int64
 }
 
 // NewHandlers builds the handler set. secureCookies sets the Secure flag on
-// auth cookies (enable behind HTTPS).
-func NewHandlers(svc *app.Service, logger *slog.Logger, secureCookies bool) *Handlers {
+// auth cookies (enable behind HTTPS); maxBlobBytes caps file uploads.
+func NewHandlers(svc *app.Service, logger *slog.Logger, secureCookies bool, maxBlobBytes int64) *Handlers {
 	if logger == nil {
 		logger = slog.Default()
 	}
-	return &Handlers{svc: svc, logger: logger, secureCookies: secureCookies}
+	return &Handlers{svc: svc, logger: logger, secureCookies: secureCookies, maxBlobBytes: maxBlobBytes}
 }
 
 // decodeJSON reads and size-limits a JSON request body into dst.

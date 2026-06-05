@@ -1,0 +1,81 @@
+name: Action test
+
+on:
+  pull_request:
+    paths: ["action/**", "cli/**", "apiclient/**", "server/**", ".github/workflows/action-test.yml"]
+  push:
+    branches: [main]
+    paths: ["action/**", "cli/**"]
+
+jobs:
+  smoke:
+    name: Inject action smoke test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: opentdm
+          POSTGRES_PASSWORD: opentdm
+          POSTGRES_DB: opentdm
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U opentdm" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://opentdm:opentdm@localhost:5432/opentdm?sslmode=disable
+      OPENTDM_HOST: http://127.0.0.1:8080
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+
+      - name: Build server + CLI
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          go build -o "$RUNNER_TEMP/opentdm-server" ./server/cmd/opentdm-server
+          go build -o "$HOME/.local/bin/opentdm" ./cli/cmd/opentdm
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Start server
+        run: |
+          export OPENTDM_MASTER_KEY="$("$RUNNER_TEMP/opentdm-server" gen-key)"
+          export OPENTDM_TOKEN_PEPPER="$("$RUNNER_TEMP/opentdm-server" gen-key)"
+          export OPENTDM_SESSION_SECRET="$("$RUNNER_TEMP/opentdm-server" gen-key)"
+          "$RUNNER_TEMP/opentdm-server" serve > "$RUNNER_TEMP/server.log" 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS "$OPENTDM_HOST/readyz" >/dev/null 2>&1; then echo "ready"; break; fi
+            sleep 1
+          done
+
+      - name: Seed data + mint token
+        id: seed
+        run: |
+          set -euo pipefail
+          ST="$(grep -oE 'setup token: [^ ]+' "$RUNNER_TEMP/server.log" | awk '{print $3}')"
+          API="$OPENTDM_HOST/api/v1"
+          curl -fsS -c jar -X POST "$API/auth/bootstrap" -H 'Content-Type: application/json' \
+            -d "{\"setup_token\":\"$ST\",\"username\":\"admin\",\"email\":\"a@b.co\",\"password\":\"supersecret\"}" >/dev/null
+          CSRF="$(grep otdm_csrf jar | awk '{print $7}')"
+          j() { curl -fsS -b jar -H 'Content-Type: application/json' -H "X-CSRF-Token: $CSRF" "$@"; }
+          j -X POST "$API/projects" -d '{"slug":"demo","name":"Demo"}' >/dev/null
+          CID="$(j -X POST "$API/projects/demo/configs" -d '{"kind":"variable","format":"env","name":"app"}' | jq -r '.data.id')"
+          j -X PUT "$API/projects/demo/configs/$CID/items?env=staging" -d '{"items":[{"key":"FOO","value":"bar"}]}' >/dev/null
+          TOKEN="$(j -X POST "$API/projects/demo/tokens" -d '{"name":"ci","scope":"read","environments":["staging"]}' | jq -r '.data.token')"
+          echo "::add-mask::$TOKEN"
+          echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
+
+      - name: Run the inject action
+        uses: ./action
+        with:
+          token: ${{ steps.seed.outputs.token }}
+          host: ${{ env.OPENTDM_HOST }}
+          project: demo
+          environment: staging
+
+      - name: Assert injected variable
+        run: |
+          if [ "${FOO:-}" != "bar" ]; then
+            echo "expected FOO=bar in the job environment, got '${FOO:-}'"; exit 1
+          fi
+          echo "action injected FOO correctly"

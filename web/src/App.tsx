@@ -7,6 +7,7 @@ import Setup from "./pages/Setup";
 import Login from "./pages/Login";
 import Projects from "./pages/Projects";
 import ProjectPage from "./pages/Project";
+import Settings from "./pages/Settings";
 
 export default function App() {
   const [me, setMe] = useState<User | null | undefined>(undefined);
@@ -46,7 +47,15 @@ export default function App() {
     <Routes>
       <Route
         path="/setup"
-        element={needsSetup ? <Setup onDone={refresh} /> : <Navigate to="/login" replace />}
+        element={
+          me ? (
+            <Navigate to="/" replace />
+          ) : needsSetup ? (
+            <Setup onDone={refresh} />
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        }
       />
       <Route path="/login" element={me ? <Navigate to="/" replace /> : <Login onDone={refresh} />} />
       <Route
@@ -83,6 +92,9 @@ function Shell({ me, onLogout }: { me: User; onLogout: () => void }) {
         </Header.Item>
         <Header.Item full />
         <Header.Item>
+          <Header.Link as={RouterLink} to="/settings" sx={{ mr: 3 }}>
+            Tokens
+          </Header.Link>
           <Text sx={{ color: "fg.onEmphasis", mr: 3 }}>{me.username}</Text>
           <Header.Link as="button" onClick={logout}>
             Sign out
@@ -93,6 +105,7 @@ function Shell({ me, onLogout }: { me: User; onLogout: () => void }) {
         <Routes>
           <Route path="/" element={<Projects />} />
           <Route path="/projects/:slug" element={<ProjectPage />} />
+          <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Box>
