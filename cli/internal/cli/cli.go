@@ -11,14 +11,17 @@ import (
 	"github.com/opentdm/opentdm/apiclient"
 )
 
-const usage = `opentdm — pull project/environment config into your CI and tests
+const usage = `opentdm — manage project/environment config and pull it into CI and tests
 
 Usage:
   opentdm login --host URL --token TOKEN [--project SLUG]
-  opentdm pull --env ENV [--project SLUG] [--format dotenv|json|shell|yaml|properties] [-o FILE]
-  opentdm run  --env ENV [--project SLUG] -- <command> [args...]
+  opentdm pull  --env ENV [--project SLUG] [--format dotenv|json|shell|yaml|properties] [-o FILE]
+  opentdm run   --env ENV [--project SLUG] -- <command> [args...]
+  opentdm configs set --env ENV [--secret] CONFIG KEY=VAL [KEY=VAL...]   (needs a user PAT)
+  opentdm push-file   --env ENV --file PATH CONFIG                       (needs a user PAT)
   opentdm version
 
+Tokens: a service token (otdm_...) is read-only (pull/run); a user PAT (otdmu_...) can also write.
 Auth precedence: flags > OPENTDM_HOST/OPENTDM_TOKEN/OPENTDM_PROJECT env > ~/.opentdm/config.json
 `
 
@@ -35,6 +38,10 @@ func Main(version string, args []string) int {
 		return cmdPull(args[1:])
 	case "run":
 		return cmdRun(args[1:])
+	case "configs":
+		return cmdConfigs(args[1:])
+	case "push-file":
+		return cmdPushFile(args[1:])
 	case "version", "-v", "--version":
 		fmt.Println("opentdm", version)
 		return 0
@@ -50,7 +57,7 @@ func Main(version string, args []string) int {
 func cmdLogin(args []string) int {
 	fs := flag.NewFlagSet("login", flag.ContinueOnError)
 	host := fs.String("host", "", "server base URL")
-	token := fs.String("token", "", "service token (otdm_...)")
+	token := fs.String("token", "", "service token (otdm_...) or user PAT (otdmu_...)")
 	project := fs.String("project", "", "default project slug")
 	if err := fs.Parse(args); err != nil {
 		return 2

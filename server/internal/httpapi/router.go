@@ -25,6 +25,7 @@ type Options struct {
 	ReadyChecks   []ReadyCheck
 	Service       *app.Service // nil disables the API (Phase 0 health-only mode)
 	SecureCookies bool
+	MaxBlobBytes  int64
 	WebHandler    http.Handler // optional SPA handler for non-/api routes
 }
 
@@ -67,7 +68,7 @@ func NewRouter(opts Options) http.Handler {
 
 	// API surface.
 	if opts.Service != nil {
-		h := NewHandlers(opts.Service, logger, opts.SecureCookies)
+		h := NewHandlers(opts.Service, logger, opts.SecureCookies, opts.MaxBlobBytes)
 		r.Route("/api/v1", func(api chi.Router) {
 			api.Use(h.loadAuth)
 
@@ -93,9 +94,24 @@ func NewRouter(opts Options) http.Handler {
 				m.Get("/projects/{project}/configs/{config}", h.handleGetConfig)
 				m.Get("/projects/{project}/configs/{config}/items", h.handleGetItems)
 				m.Put("/projects/{project}/configs/{config}/items", h.handlePutItems)
+				// File/fixture content (raw body) + versioning.
+				m.Get("/projects/{project}/configs/{config}/blob", h.handleGetBlob)
+				m.Put("/projects/{project}/configs/{config}/blob", h.handlePutBlob)
+				m.Get("/projects/{project}/configs/{config}/versions", h.handleListVersions)
+				m.Get("/projects/{project}/configs/{config}/versions/{version}", h.handleGetVersion)
+				m.Get("/projects/{project}/configs/{config}/diff", h.handleDiff)
+				m.Post("/projects/{project}/configs/{config}/rollback", h.handleRollback)
 				m.Get("/projects/{project}/tokens", h.handleListTokens)
 				m.Post("/projects/{project}/tokens", h.handleCreateToken)
 				m.Delete("/projects/{project}/tokens/{token}", h.handleRevokeToken)
+
+				// PAT lifecycle is session-only (a PAT cannot mint/revoke PATs).
+				m.Group(func(s chi.Router) {
+					s.Use(h.requireSession)
+					s.Get("/pats", h.handleListPATs)
+					s.Post("/pats", h.handleCreatePAT)
+					s.Delete("/pats/{pat}", h.handleRevokePAT)
+				})
 			})
 		})
 	}

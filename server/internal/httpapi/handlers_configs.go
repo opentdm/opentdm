@@ -125,7 +125,8 @@ func (h *Handlers) handlePutItems(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req struct {
-		Items []itemDTO `json:"items"`
+		Items   []itemDTO `json:"items"`
+		Comment string    `json:"comment"`
 	}
 	if err := decodeJSON(w, r, &req); err != nil {
 		h.badRequest(w, r, "invalid JSON body")
@@ -136,9 +137,10 @@ func (h *Handlers) handlePutItems(w http.ResponseWriter, r *http.Request) {
 		inputs = append(inputs, app.VarInput{Key: it.Key, Value: it.Value, IsSecret: it.IsSecret, Deleted: it.Deleted})
 	}
 	env := r.URL.Query().Get("env")
-	if err := h.svc.SetItems(r.Context(), p, c, env, inputs); err != nil {
+	version, err := h.svc.SetItems(r.Context(), p, c, env, inputs, strPtr(req.Comment), actorID(r.Context()))
+	if err != nil {
 		h.writeErr(w, r, err)
 		return
 	}
-	WriteJSON(w, http.StatusOK, map[string]any{"count": len(inputs), "env": env}, nil)
+	WriteJSON(w, http.StatusOK, map[string]any{"count": len(inputs), "env": env, "version": version.Version}, nil)
 }

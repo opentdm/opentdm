@@ -85,6 +85,39 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   return (json.data ?? json) as T;
 }
 
+export interface VersionMeta {
+  version: number;
+  is_current: boolean;
+  kind: string;
+  byte_size: number;
+  comment?: string;
+  created_at: string;
+}
+export interface VarDiffEntry {
+  key: string;
+  status: string;
+  from?: string;
+  to?: string;
+  was_secret: boolean;
+  is_secret: boolean;
+}
+export interface DiffResult {
+  kind: string;
+  from: number;
+  to: number;
+  vars?: VarDiffEntry[];
+  file_diff?: string;
+}
+export interface PAT {
+  id: string;
+  name: string;
+  prefix: string;
+  expires_at: string | null;
+  last_used_at: string | null;
+  revoked_at: string | null;
+  created_at: string;
+}
+
 export const api = {
   get: <T>(p: string) => request<T>("GET", p),
   post: <T>(p: string, b?: unknown) => request<T>("POST", p, b),
@@ -96,5 +129,29 @@ export const api = {
       { credentials: "include" },
     );
     return resp.text();
+  },
+  // Raw text GET (for file blobs / version snapshots).
+  getText: async (path: string): Promise<string> => {
+    const resp = await fetch("/api/v1" + path, { credentials: "include" });
+    if (!resp.ok) throw new APIError(resp.status, await resp.text());
+    return resp.text();
+  },
+  // Raw body PUT (for file blobs), with CSRF.
+  putRaw: async (path: string, body: string, contentType: string): Promise<void> => {
+    const resp = await fetch("/api/v1" + path, {
+      method: "PUT",
+      headers: { "Content-Type": contentType, "X-CSRF-Token": cookie("otdm_csrf") },
+      credentials: "include",
+      body,
+    });
+    if (!resp.ok) {
+      let msg = resp.statusText;
+      try {
+        msg = JSON.parse(await resp.text()).detail || msg;
+      } catch {
+        /* ignore */
+      }
+      throw new APIError(resp.status, msg);
+    }
   },
 };
