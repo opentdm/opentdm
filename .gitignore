@@ -28,7 +28,9 @@ node_modules/
 .idea/
 .vscode/
 *.swp
-.claude/
+# Commit shared project config (.claude/{skills,agents,hooks,settings.json});
+# ignore only per-developer local settings.
+.claude/settings.local.json
 
 # GoReleaser output
 /dist/
