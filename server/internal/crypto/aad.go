@@ -33,6 +33,14 @@ func BlobAAD(projectID, envID, configID string) []byte {
 	return AAD("blob", projectID, baseOr(envID), configID)
 }
 
+// VersionAAD binds a version snapshot to its layer identity AND its snapshot
+// kind, with a leading "version" tag so a snapshot can't be relocated to another
+// config/env/kind or confused with live item ("item") or file ("blob")
+// ciphertext. dek_version is intentionally excluded (rotation mutates it).
+func VersionAAD(projectID, envID, configID, snapshotKind string) []byte {
+	return AAD("version", projectID, baseOr(envID), configID, snapshotKind)
+}
+
 // baseOr maps the empty (project-level / base) environment to the literal
 // "base" so the AAD is unambiguous and stable.
 func baseOr(envID string) string {

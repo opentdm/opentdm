@@ -75,6 +75,28 @@ func (s *Service) cipherFor(p model.Project) (*crypto.DEKCipher, error) {
 	return actual.(*crypto.DEKCipher), nil
 }
 
+// cipherAndDEK returns a project's cipher plus a transient copy of the raw DEK.
+// The caller MUST zero the returned dek after use. This exists because
+// ContentHMAC needs the raw DEK, which cipherFor deliberately discards to keep
+// the cached cipher key-free.
+func (s *Service) cipherAndDEK(p model.Project) (*crypto.DEKCipher, []byte, error) {
+	dek, err := s.keys.Unwrap(p.DEKWrapped, p.DEKKeyRef)
+	if err != nil {
+		return nil, nil, err
+	}
+	key := p.ID.String()
+	if c, ok := s.cipherCache.Load(key); ok {
+		return c.(*crypto.DEKCipher), dek, nil
+	}
+	c, err := crypto.NewDEKCipher(dek, crypto.AlgAESGCM)
+	if err != nil {
+		zero(dek)
+		return nil, nil, err
+	}
+	actual, _ := s.cipherCache.LoadOrStore(key, c)
+	return actual.(*crypto.DEKCipher), dek, nil
+}
+
 func zero(b []byte) {
 	for i := range b {
 		b[i] = 0

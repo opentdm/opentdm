@@ -28,6 +28,7 @@ func New(cfg *config.Config, logger *slog.Logger, svc *app.Service, secureCookie
 		ReadyChecks:   checks,
 		Service:       svc,
 		SecureCookies: secureCookies,
+		MaxBlobBytes:  cfg.MaxBlobBytes,
 		WebHandler:    web,
 	})
 	return &Server{

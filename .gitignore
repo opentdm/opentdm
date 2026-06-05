@@ -29,3 +29,10 @@ node_modules/
 .vscode/
 *.swp
 .claude/
+
+# GoReleaser output
+/dist/
+
+# Playwright output
+.playwright-mcp/
+*.png

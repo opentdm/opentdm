@@ -23,12 +23,36 @@ func (h *Handlers) loadAuth(next http.Handler) http.Handler {
 				ctx = withUser(ctx, u)
 			}
 		}
+		// Prefix-dispatch the Bearer: a user PAT (otdmu_) authenticates AS the
+		// user; a service token (otdm_) is a project+env-scoped read credential.
+		// The two prefixes are mutually non-prefixing, so this is unambiguous.
 		if raw := bearerToken(r); raw != "" {
-			if t, err := h.svc.AuthenticateToken(ctx, raw); err == nil {
-				ctx = withToken(ctx, t)
+			switch {
+			case strings.HasPrefix(raw, "otdmu_"):
+				if u, err := h.svc.AuthenticatePAT(ctx, raw); err == nil {
+					ctx = withUser(ctx, u)
+					ctx = withPATMarker(ctx)
+				}
+			case strings.HasPrefix(raw, "otdm_"):
+				if t, err := h.svc.AuthenticateToken(ctx, raw); err == nil {
+					ctx = withToken(ctx, t)
+				}
 			}
 		}
 		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+// requireSession rejects requests authenticated via a user PAT, restricting a
+// route to interactive (cookie) sessions only — used for PAT lifecycle
+// management so a leaked PAT cannot mint or revoke PATs.
+func (h *Handlers) requireSession(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if isPATAuth(r.Context()) {
+			WriteProblem(w, r, http.StatusForbidden, "session_required", "This action requires an interactive session, not a PAT", "")
+			return
+		}
+		next.ServeHTTP(w, r)
 	})
 }
 
@@ -53,6 +77,10 @@ func (h *Handlers) csrf(next http.Handler) http.Handler {
 			return
 		}
 		if _, hasToken := tokenFrom(r.Context()); hasToken {
+			next.ServeHTTP(w, r)
+			return
+		}
+		if isPATAuth(r.Context()) { // PAT is a Bearer credential, no ambient cookie to forge
 			next.ServeHTTP(w, r)
 			return
 		}

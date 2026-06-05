@@ -111,3 +111,50 @@ type Token struct {
 	RevokedAt  *time.Time
 	CreatedAt  time.Time
 }
+
+// ConfigBlob is the current content of a file config at one layer (EnvID nil =
+// default variant).
+type ConfigBlob struct {
+	ID                uuid.UUID
+	ConfigID          uuid.UUID
+	EnvID             *uuid.UUID
+	ContentCiphertext []byte
+	DEKVersion        int
+	ContentHMAC       []byte
+	SizeBytes         int64
+	UpdatedBy         *uuid.UUID
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+}
+
+// ConfigVersion is one append-only snapshot of a config layer's whole content.
+// For variables the decrypted snapshot is canonical JSON of the item set; for
+// files it is the raw plaintext. ListVersions leaves SnapshotCiphertext nil.
+type ConfigVersion struct {
+	ID                 uuid.UUID
+	ConfigID           uuid.UUID
+	EnvID              *uuid.UUID
+	Version            int
+	SnapshotKind       string
+	SnapshotCiphertext []byte
+	DEKVersion         int
+	ContentHMAC        []byte
+	ByteSize           int64
+	IsCurrent          bool
+	Comment            *string
+	CreatedBy          *uuid.UUID
+	CreatedAt          time.Time
+}
+
+// UserPAT is a user-scoped Personal Access Token (authenticates as the user for
+// management writes), distinct from project+environment service tokens.
+type UserPAT struct {
+	ID         uuid.UUID
+	UserID     uuid.UUID
+	Name       string
+	Prefix     string
+	ExpiresAt  *time.Time
+	LastUsedAt *time.Time
+	RevokedAt  *time.Time
+	CreatedAt  time.Time
+}

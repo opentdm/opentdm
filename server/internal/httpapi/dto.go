@@ -3,6 +3,7 @@ package httpapi
 import (
 	"time"
 
+	"github.com/opentdm/opentdm/server/internal/app"
 	"github.com/opentdm/opentdm/server/internal/model"
 )
 
@@ -75,4 +76,73 @@ func toTokenDTO(t model.Token) tokenDTO {
 		ID: t.ID.String(), Name: t.Name, Prefix: t.Prefix, Scope: t.Scope, EnvIDs: ids,
 		ExpiresAt: t.ExpiresAt, LastUsedAt: t.LastUsedAt, RevokedAt: t.RevokedAt, CreatedAt: t.CreatedAt,
 	}
+}
+
+type patDTO struct {
+	ID         string     `json:"id"`
+	Name       string     `json:"name"`
+	Prefix     string     `json:"prefix"`
+	ExpiresAt  *time.Time `json:"expires_at"`
+	LastUsedAt *time.Time `json:"last_used_at"`
+	RevokedAt  *time.Time `json:"revoked_at"`
+	CreatedAt  time.Time  `json:"created_at"`
+}
+
+func toPATDTO(p model.UserPAT) patDTO {
+	return patDTO{
+		ID: p.ID.String(), Name: p.Name, Prefix: p.Prefix,
+		ExpiresAt: p.ExpiresAt, LastUsedAt: p.LastUsedAt, RevokedAt: p.RevokedAt, CreatedAt: p.CreatedAt,
+	}
+}
+
+type versionMetaDTO struct {
+	Version   int       `json:"version"`
+	IsCurrent bool      `json:"is_current"`
+	Kind      string    `json:"kind"`
+	ByteSize  int64     `json:"byte_size"`
+	Comment   string    `json:"comment,omitempty"`
+	CreatedBy *string   `json:"created_by"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+func toVersionMetaDTO(v model.ConfigVersion) versionMetaDTO {
+	d := versionMetaDTO{
+		Version: v.Version, IsCurrent: v.IsCurrent, Kind: v.SnapshotKind,
+		ByteSize: v.ByteSize, CreatedAt: v.CreatedAt,
+	}
+	if v.Comment != nil {
+		d.Comment = *v.Comment
+	}
+	if v.CreatedBy != nil {
+		s := v.CreatedBy.String()
+		d.CreatedBy = &s
+	}
+	return d
+}
+
+type varDiffEntryDTO struct {
+	Key       string  `json:"key"`
+	Status    string  `json:"status"`
+	From      *string `json:"from,omitempty"`
+	To        *string `json:"to,omitempty"`
+	WasSecret bool    `json:"was_secret"`
+	IsSecret  bool    `json:"is_secret"`
+}
+
+type diffDTO struct {
+	Kind     string            `json:"kind"`
+	From     int               `json:"from"`
+	To       int               `json:"to"`
+	Vars     []varDiffEntryDTO `json:"vars,omitempty"`
+	FileDiff string            `json:"file_diff,omitempty"`
+}
+
+func toDiffDTO(d app.DiffResult) diffDTO {
+	out := diffDTO{Kind: d.Kind, From: d.From, To: d.To, FileDiff: d.FileDiff}
+	for _, v := range d.Vars {
+		out.Vars = append(out.Vars, varDiffEntryDTO{
+			Key: v.Key, Status: v.Status, From: v.From, To: v.To, WasSecret: v.WasSecret, IsSecret: v.IsSecret,
+		})
+	}
+	return out
 }

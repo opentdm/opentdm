@@ -16,6 +16,8 @@ const (
 	FormatShell      = "shell"
 	FormatYAML       = "yaml"
 	FormatProperties = "properties"
+	FormatCSV        = "csv"
+	FormatXML        = "xml"
 )
 
 // Render serializes resolved pairs in the requested format, returning the body

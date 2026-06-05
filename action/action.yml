@@ -1,0 +1,43 @@
+name: "OpenTDM Inject"
+description: "Pull a project/environment's variables from opentdm into the workflow (env vars or a .env file)."
+branding:
+  icon: "package"
+  color: "blue"
+inputs:
+  token:
+    description: "Service token (otdm_...) — pass via a GitHub secret."
+    required: true
+  host:
+    description: "opentdm server base URL."
+    required: true
+  project:
+    description: "Project slug."
+    required: true
+  environment:
+    description: "Environment slug."
+    required: true
+  format:
+    description: "env (inject into $GITHUB_ENV) | dotenv-file | json"
+    required: false
+    default: "env"
+  output-path:
+    description: "Output file path for dotenv-file/json formats."
+    required: false
+    default: ".env"
+  version:
+    description: "CLI version to install (e.g. v0.2.0 or latest)."
+    required: false
+    default: "latest"
+runs:
+  using: "composite"
+  steps:
+    - shell: bash
+      run: ${{ github.action_path }}/entrypoint.sh
+      env:
+        OPENTDM_TOKEN: ${{ inputs.token }}
+        OPENTDM_HOST: ${{ inputs.host }}
+        INPUT_PROJECT: ${{ inputs.project }}
+        INPUT_ENV: ${{ inputs.environment }}
+        INPUT_FORMAT: ${{ inputs.format }}
+        INPUT_OUTPUT: ${{ inputs.output-path }}
+        INPUT_VERSION: ${{ inputs.version }}
