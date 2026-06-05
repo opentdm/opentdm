@@ -1,0 +1,31 @@
+# Env / secrets
+.env
+*.env
+!.env.example
+*.pem
+*.key
+
+# Go
+/bin/
+*.test
+*.out
+coverage.*
+vendor/
+
+# Node / web
+node_modules/
+*.tsbuildinfo
+.pnpm-store/
+# NOTE: server/internal/webui/dist IS committed — it is embedded into the Go
+# binary via go:embed, so `go build`/`go test` work without a node toolchain.
+
+# Build artifacts
+/opentdm
+/opentdm-server
+
+# Editors / OS / tooling
+.DS_Store
+.idea/
+.vscode/
+*.swp
+.claude/

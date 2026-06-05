@@ -1,0 +1,210 @@
+// Package cli implements the opentdm command-line interface.
+package cli
+
+import (
+	"context"
+	"flag"
+	"fmt"
+	"os"
+	"path/filepath"
+
+	"github.com/opentdm/opentdm/apiclient"
+)
+
+const usage = `opentdm — pull project/environment config into your CI and tests
+
+Usage:
+  opentdm login --host URL --token TOKEN [--project SLUG]
+  opentdm pull --env ENV [--project SLUG] [--format dotenv|json|shell|yaml|properties] [-o FILE]
+  opentdm run  --env ENV [--project SLUG] -- <command> [args...]
+  opentdm version
+
+Auth precedence: flags > OPENTDM_HOST/OPENTDM_TOKEN/OPENTDM_PROJECT env > ~/.opentdm/config.json
+`
+
+// Main dispatches a subcommand and returns a process exit code.
+func Main(version string, args []string) int {
+	if len(args) == 0 {
+		fmt.Fprint(os.Stderr, usage)
+		return 2
+	}
+	switch args[0] {
+	case "login":
+		return cmdLogin(args[1:])
+	case "pull":
+		return cmdPull(args[1:])
+	case "run":
+		return cmdRun(args[1:])
+	case "version", "-v", "--version":
+		fmt.Println("opentdm", version)
+		return 0
+	case "help", "-h", "--help":
+		fmt.Print(usage)
+		return 0
+	default:
+		fmt.Fprintf(os.Stderr, "unknown command %q\n\n%s", args[0], usage)
+		return 2
+	}
+}
+
+func cmdLogin(args []string) int {
+	fs := flag.NewFlagSet("login", flag.ContinueOnError)
+	host := fs.String("host", "", "server base URL")
+	token := fs.String("token", "", "service token (otdm_...)")
+	project := fs.String("project", "", "default project slug")
+	if err := fs.Parse(args); err != nil {
+		return 2
+	}
+	if *host == "" || *token == "" {
+		fmt.Fprintln(os.Stderr, "login requires --host and --token")
+		return 2
+	}
+	if err := saveConfig(Config{Host: *host, Token: *token, Project: *project}); err != nil {
+		fmt.Fprintln(os.Stderr, "save config:", err)
+		return 1
+	}
+	path, _ := configPath()
+	fmt.Printf("Saved credentials to %s\n", path)
+	return 0
+}
+
+func cmdPull(args []string) int {
+	fs := flag.NewFlagSet("pull", flag.ContinueOnError)
+	host := fs.String("host", "", "server base URL")
+	token := fs.String("token", "", "service token")
+	project := fs.String("project", "", "project slug")
+	env := fs.String("env", "", "environment slug (required)")
+	format := fs.String("format", "dotenv", "output format: dotenv|json|shell|yaml|properties")
+	output := fs.String("o", "", "output file (default stdout)")
+	if err := fs.Parse(args); err != nil {
+		return 2
+	}
+	cfg := effective(*host, *token, *project)
+	if code := requireResolveArgs(cfg, *env); code != 0 {
+		return code
+	}
+	client := apiclient.New(cfg.Host, cfg.Token)
+	body, _, err := client.Resolve(context.Background(), cfg.Project, *env, *format)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
+	if *output == "" || *output == "-" {
+		_, _ = os.Stdout.Write(body)
+		return 0
+	}
+	if err := writeFileAtomic(*output, body); err != nil {
+		fmt.Fprintln(os.Stderr, "write:", err)
+		return 1
+	}
+	fmt.Fprintf(os.Stderr, "wrote %s\n", *output)
+	return 0
+}
+
+func cmdRun(args []string) int {
+	// Split flags (before "--") from the command (after "--").
+	flagArgs, cmdArgs := splitDashDash(args)
+	fs := flag.NewFlagSet("run", flag.ContinueOnError)
+	host := fs.String("host", "", "server base URL")
+	token := fs.String("token", "", "service token")
+	project := fs.String("project", "", "project slug")
+	env := fs.String("env", "", "environment slug (required)")
+	if err := fs.Parse(flagArgs); err != nil {
+		return 2
+	}
+	if len(cmdArgs) == 0 {
+		fmt.Fprintln(os.Stderr, "run requires a command after '--', e.g. opentdm run --env staging -- npm test")
+		return 2
+	}
+	cfg := effective(*host, *token, *project)
+	if code := requireResolveArgs(cfg, *env); code != 0 {
+		return code
+	}
+	client := apiclient.New(cfg.Host, cfg.Token)
+	vars, err := client.ResolveMap(context.Background(), cfg.Project, *env)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
+	return runProcess(cmdArgs, mergeEnv(os.Environ(), vars))
+}
+
+func requireResolveArgs(cfg Config, env string) int {
+	if cfg.Host == "" || cfg.Token == "" {
+		fmt.Fprintln(os.Stderr, "not logged in: set --host/--token, OPENTDM_HOST/OPENTDM_TOKEN, or run 'opentdm login'")
+		return 2
+	}
+	if cfg.Project == "" {
+		fmt.Fprintln(os.Stderr, "missing project: pass --project or set a default with 'opentdm login --project'")
+		return 2
+	}
+	if env == "" {
+		fmt.Fprintln(os.Stderr, "missing --env")
+		return 2
+	}
+	return 0
+}
+
+// splitDashDash partitions args around the first "--".
+func splitDashDash(args []string) (before, after []string) {
+	for i, a := range args {
+		if a == "--" {
+			return args[:i], args[i+1:]
+		}
+	}
+	return args, nil
+}
+
+// mergeEnv overlays resolved vars onto the inherited environment (resolved wins).
+func mergeEnv(base []string, vars map[string]string) []string {
+	out := make([]string, 0, len(base)+len(vars))
+	override := map[string]bool{}
+	for k := range vars {
+		override[k] = true
+	}
+	for _, kv := range base {
+		key := kv
+		if i := indexByte(kv, '='); i >= 0 {
+			key = kv[:i]
+		}
+		if !override[key] {
+			out = append(out, kv)
+		}
+	}
+	for k, v := range vars {
+		out = append(out, k+"="+v)
+	}
+	return out
+}
+
+func indexByte(s string, b byte) int {
+	for i := 0; i < len(s); i++ {
+		if s[i] == b {
+			return i
+		}
+	}
+	return -1
+}
+
+// writeFileAtomic writes via a temp file + rename, mode 0600.
+func writeFileAtomic(path string, data []byte) error {
+	dir := filepath.Dir(path)
+	tmp, err := os.CreateTemp(dir, ".opentdm-*")
+	if err != nil {
+		return err
+	}
+	tmpName := tmp.Name()
+	defer os.Remove(tmpName)
+	if _, err := tmp.Write(data); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Chmod(0o600); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	return os.Rename(tmpName, path)
+}
