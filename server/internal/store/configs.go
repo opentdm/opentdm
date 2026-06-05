@@ -1,0 +1,66 @@
+package store
+
+import (
+	"context"
+
+	"github.com/google/uuid"
+	"github.com/opentdm/opentdm/server/internal/model"
+)
+
+const configSelect = `
+	SELECT c.id, c.project_id, c.kind::text, c.format::text, c.name, c.sort_order,
+	       COALESCE(c.description,''), c.is_secret, c.archived_at, c.created_at, c.updated_at,
+	       COALESCE(array_agg(ct.tag::text) FILTER (WHERE ct.tag IS NOT NULL), '{}') AS tags
+	FROM configs c LEFT JOIN config_tags ct ON ct.config_id = c.id `
+
+func scanConfig(row scannable) (model.Config, error) {
+	var c model.Config
+	err := row.Scan(&c.ID, &c.ProjectID, &c.Kind, &c.Format, &c.Name, &c.SortOrder,
+		&c.Description, &c.IsSecret, &c.ArchivedAt, &c.CreatedAt, &c.UpdatedAt, &c.Tags)
+	return c, err
+}
+
+// CreateConfig inserts a config and its tags. Run inside a transaction when the
+// tags must be atomic with the config.
+func (q *Queries) CreateConfig(ctx context.Context, c model.Config) (model.Config, error) {
+	row := q.db.QueryRow(ctx, `
+		INSERT INTO configs (project_id, kind, format, name, sort_order, description, is_secret, created_by)
+		VALUES ($1, $2::config_kind, $3::config_format, $4, $5, $6, $7, $8)
+		RETURNING id`,
+		c.ProjectID, c.Kind, c.Format, c.Name, c.SortOrder, c.Description, c.IsSecret, c.CreatedBy)
+	var id uuid.UUID
+	if err := row.Scan(&id); err != nil {
+		return model.Config{}, err
+	}
+	for _, tag := range c.Tags {
+		if _, err := q.db.Exec(ctx, "INSERT INTO config_tags (config_id, tag) VALUES ($1, $2) ON CONFLICT DO NOTHING", id, tag); err != nil {
+			return model.Config{}, err
+		}
+	}
+	return q.GetConfig(ctx, id)
+}
+
+func (q *Queries) GetConfig(ctx context.Context, id uuid.UUID) (model.Config, error) {
+	row := q.db.QueryRow(ctx, configSelect+"WHERE c.id = $1 GROUP BY c.id", id)
+	c, err := scanConfig(row)
+	return c, mapNoRows(err)
+}
+
+// ListConfigs returns non-archived configs for a project, ordered by sort_order.
+func (q *Queries) ListConfigs(ctx context.Context, projectID uuid.UUID) ([]model.Config, error) {
+	rows, err := q.db.Query(ctx, configSelect+
+		"WHERE c.project_id = $1 AND c.archived_at IS NULL GROUP BY c.id ORDER BY c.sort_order, c.name", projectID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []model.Config
+	for rows.Next() {
+		c, err := scanConfig(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, c)
+	}
+	return out, rows.Err()
+}

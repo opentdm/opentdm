@@ -1,0 +1,41 @@
+# opentdm self-host stack: the app + postgres. No Redis in v1 (sessions are
+# DB-backed, rate limiting is in-process). Provide secrets via a .env file:
+#   cp .env.example .env && printf 'OPENTDM_MASTER_KEY=%s\n' "$(openssl rand -base64 32)" >> .env
+# (also set OPENTDM_TOKEN_PEPPER and OPENTDM_SESSION_SECRET).
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: opentdm
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-opentdm}
+      POSTGRES_DB: opentdm
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U opentdm -d opentdm"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      # Point the app at the bundled postgres service (overrides any value in .env).
+      DATABASE_URL: postgres://opentdm:${POSTGRES_PASSWORD:-opentdm}@postgres:5432/opentdm?sslmode=disable
+      PORT: "8080"
+      OPENTDM_BIND: "0.0.0.0"
+    ports:
+      - "${OPENTDM_PORT:-8080}:8080"
+    restart: unless-stopped
+
+volumes:
+  pgdata:
