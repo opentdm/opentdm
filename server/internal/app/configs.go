@@ -59,6 +59,38 @@ func (s *Service) ListConfigs(ctx context.Context, projectID uuid.UUID) ([]model
 	return s.store.Q().ListConfigs(ctx, projectID)
 }
 
+// UpdateConfig renames/retags a config and sets its sort_order/description.
+func (s *Service) UpdateConfig(ctx context.Context, projectID, configID uuid.UUID, name string, sortOrder int, description string, tags []string) (model.Config, error) {
+	if name == "" {
+		return model.Config{}, invalid("name", "must not be empty")
+	}
+	var out model.Config
+	err := s.store.InTx(ctx, func(q *store.Queries) error {
+		cur, err := q.GetConfig(ctx, configID)
+		if err != nil {
+			return err
+		}
+		if cur.ProjectID != projectID {
+			return ErrNotFound
+		}
+		c, err := q.UpdateConfig(ctx, model.Config{ID: configID, Name: name, SortOrder: sortOrder, Description: description, Tags: tags})
+		if err != nil {
+			if isUniqueViolation(err) {
+				return ErrConflict
+			}
+			return err
+		}
+		out = c
+		return nil
+	})
+	return out, err
+}
+
+// ArchiveConfig soft-deletes a config.
+func (s *Service) ArchiveConfig(ctx context.Context, projectID, configID uuid.UUID) error {
+	return s.store.Q().ArchiveConfig(ctx, projectID, configID)
+}
+
 func (s *Service) GetConfig(ctx context.Context, id uuid.UUID) (model.Config, error) {
 	return s.store.Q().GetConfig(ctx, id)
 }

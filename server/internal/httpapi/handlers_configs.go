@@ -84,6 +84,55 @@ func (h *Handlers) handleGetConfig(w http.ResponseWriter, r *http.Request) {
 	WriteJSON(w, http.StatusOK, toConfigDTO(c), nil)
 }
 
+// PATCH /projects/{project}/configs/{config}  {name?,sort_order,description,tags}
+func (h *Handlers) handleUpdateConfig(w http.ResponseWriter, r *http.Request) {
+	p, ok := h.resolveProject(w, r)
+	if !ok {
+		return
+	}
+	c, ok := h.resolveConfig(w, r, p)
+	if !ok {
+		return
+	}
+	var req struct {
+		Name        string   `json:"name"`
+		SortOrder   int      `json:"sort_order"`
+		Description string   `json:"description"`
+		Tags        []string `json:"tags"`
+	}
+	if err := decodeJSON(w, r, &req); err != nil {
+		h.badRequest(w, r, "invalid JSON body")
+		return
+	}
+	name := req.Name
+	if name == "" {
+		name = c.Name
+	}
+	updated, err := h.svc.UpdateConfig(r.Context(), p.ID, c.ID, name, req.SortOrder, req.Description, req.Tags)
+	if err != nil {
+		h.writeErr(w, r, err)
+		return
+	}
+	WriteJSON(w, http.StatusOK, toConfigDTO(updated), nil)
+}
+
+// DELETE /projects/{project}/configs/{config}  (soft-delete)
+func (h *Handlers) handleDeleteConfig(w http.ResponseWriter, r *http.Request) {
+	p, ok := h.resolveProject(w, r)
+	if !ok {
+		return
+	}
+	c, ok := h.resolveConfig(w, r, p)
+	if !ok {
+		return
+	}
+	if err := h.svc.ArchiveConfig(r.Context(), p.ID, c.ID); err != nil {
+		h.writeErr(w, r, err)
+		return
+	}
+	WriteJSON(w, http.StatusOK, map[string]bool{"deleted": true}, nil)
+}
+
 type itemDTO struct {
 	Key      string `json:"key"`
 	Value    string `json:"value"`
