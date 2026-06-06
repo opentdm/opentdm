@@ -47,6 +47,55 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (model.User, er
 	return u, mapNoRows(err)
 }
 
+func (q *Queries) GetUserByEmail(ctx context.Context, email string) (model.User, error) {
+	row := q.db.QueryRow(ctx, `
+		SELECT id, username, email, password_hash, is_admin, is_active, created_at, updated_at
+		FROM users WHERE email = $1`, email)
+	u, err := scanUser(row)
+	return u, mapNoRows(err)
+}
+
+// ListUsers returns all users, newest first (admin directory).
+func (q *Queries) ListUsers(ctx context.Context) ([]model.User, error) {
+	rows, err := q.db.Query(ctx, `
+		SELECT id, username, email, password_hash, is_admin, is_active, created_at, updated_at
+		FROM users ORDER BY created_at`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []model.User
+	for rows.Next() {
+		u, err := scanUser(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, u)
+	}
+	return out, rows.Err()
+}
+
+// CountActiveAdmins returns the number of active instance admins (for the
+// last-admin guard).
+func (q *Queries) CountActiveAdmins(ctx context.Context) (int, error) {
+	var n int
+	err := q.db.QueryRow(ctx, "SELECT count(*) FROM users WHERE is_admin AND is_active").Scan(&n)
+	return n, err
+}
+
+// UpdateUserFlags sets is_active and/or is_admin (nil leaves a flag unchanged).
+func (q *Queries) UpdateUserFlags(ctx context.Context, id uuid.UUID, isActive, isAdmin *bool) (model.User, error) {
+	row := q.db.QueryRow(ctx, `
+		UPDATE users SET
+			is_active = COALESCE($2, is_active),
+			is_admin  = COALESCE($3, is_admin)
+		WHERE id = $1
+		RETURNING id, username, email, password_hash, is_admin, is_active, created_at, updated_at`,
+		id, isActive, isAdmin)
+	u, err := scanUser(row)
+	return u, mapNoRows(err)
+}
+
 type scannable interface {
 	Scan(dest ...any) error
 }

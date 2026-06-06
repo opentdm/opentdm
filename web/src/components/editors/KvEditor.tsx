@@ -16,9 +16,10 @@ interface KvEditorProps {
   slug: string;
   config: Config;
   layer: string;
+  readOnly?: boolean;
 }
 
-export default function KvEditor({ slug, config, layer }: KvEditorProps) {
+export default function KvEditor({ slug, config, layer, readOnly }: KvEditorProps) {
   const [rows, setRows] = useState<Row[]>([]);
   const [raw, setRaw] = useState(false);
   const [rawText, setRawText] = useState("");
@@ -154,16 +155,18 @@ export default function KvEditor({ slug, config, layer }: KvEditorProps) {
           ))}
         </Box>
       )}
-      <Box sx={{ mt: 2, display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap" }}>
-        <Button variant="primary" onClick={save}>
-          Save {layer}
-        </Button>
-        {!raw && <Button onClick={addRow}>Add variable</Button>}
-        <Button onClick={() => (raw ? fromRaw() : toRaw())}>{raw ? "Table view" : "Raw .env"}</Button>
-        <Button onClick={() => fileInput.current?.click()}>Import .env</Button>
-        <input ref={fileInput} type="file" accept=".env,text/plain" hidden onChange={importEnv} />
-        {msg && <Text sx={{ color: "success.fg" }}>{msg}</Text>}
-      </Box>
+      {!readOnly && (
+        <Box sx={{ mt: 2, display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap" }}>
+          <Button variant="primary" onClick={save}>
+            Save {layer}
+          </Button>
+          {!raw && <Button onClick={addRow}>Add variable</Button>}
+          <Button onClick={() => (raw ? fromRaw() : toRaw())}>{raw ? "Table view" : "Raw .env"}</Button>
+          <Button onClick={() => fileInput.current?.click()}>Import .env</Button>
+          <input ref={fileInput} type="file" accept=".env,text/plain" hidden onChange={importEnv} />
+          {msg && <Text sx={{ color: "success.fg" }}>{msg}</Text>}
+        </Box>
+      )}
       <Text sx={{ color: "fg.muted", fontSize: 0, display: "block", mt: 2 }}>
         Editing the <b>{layer}</b> layer. Keys not set here inherit from base — see the project's Resolved view.
       </Text>

@@ -8,7 +8,7 @@ import (
 // Clones one object's source-env layer into a target-env layer. Responds with
 // counts/version only — never any values.
 func (h *Handlers) handleCloneConfig(w http.ResponseWriter, r *http.Request) {
-	p, ok := h.resolveProject(w, r)
+	p, ok := h.resolveProjectRole(w, r, roleEditor)
 	if !ok {
 		return
 	}
@@ -37,7 +37,7 @@ func (h *Handlers) handleCloneConfig(w http.ResponseWriter, r *http.Request) {
 // Clones every non-archived object's source-env layer into a target-env layer.
 // Responds with a per-config summary of names and counts — never any values.
 func (h *Handlers) handleCloneEnvironment(w http.ResponseWriter, r *http.Request) {
-	p, ok := h.resolveProject(w, r)
+	p, ok := h.resolveProjectRole(w, r, roleEditor)
 	if !ok {
 		return
 	}

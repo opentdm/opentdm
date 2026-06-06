@@ -49,6 +49,23 @@
   **Default-deny**: empty/NULL env set is never a wildcard. No cross-project / tag-scoped tokens in v1.
 - `last_used_at` updated via a coalescing map flushed by a ticker (never per-request writes).
 
+## Authorization (per-project roles + membership)
+- Roles per project: **owner > editor > viewer** (`project_members(project_id,user_id,role)`, compared via
+  `model.RoleRank`). Viewer reads; editor reads+writes configs/values/envs/clone/tokens; owner also manages
+  members + invitations. Instance admins (`users.is_admin`) **bypass membership** as implicit owners everywhere.
+- Single choke point: `httpapi.resolveProject` (viewer) / `resolveProjectRole(minRole)` gate every
+  `/projects/{project}/*` management route. **Non-member → 404** (existence hidden, GitHub-style);
+  **member below the required role → 403**. `ListProjects` is per-user (admins see all); the project DTO
+  carries `your_role` for UI gating (server is the authority).
+- Auth planes: a **PAT inherits its user's roles** (it authenticates *as* the user); a **service token is its
+  own grant** (`/resolve` via token is independent of membership; via session it requires viewer+).
+- Keep **≥1 owner**: demoting/removing the last owner → 422.
+- Onboarding is by **email invitation** (`project_invitations`, token hashed like other tokens, single-use,
+  7-day expiry): an owner invites an email+role; accept creates a *new* account + the membership and logs in.
+  Existing accounts are added directly by username/email. SMTP is optional — when unconfigured the accept link
+  is logged and returned to the inviter (mirrors the setup-token-to-logs pattern). Backfill on migrate makes
+  each existing project's `created_by` its owner.
+
 ## Bootstrap
 - DB singleton row + one-time setup token printed to first-boot logs, required to create the first admin.
 

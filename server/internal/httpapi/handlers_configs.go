@@ -43,7 +43,7 @@ func (h *Handlers) handleListConfigs(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) handleCreateConfig(w http.ResponseWriter, r *http.Request) {
-	p, ok := h.resolveProject(w, r)
+	p, ok := h.resolveProjectRole(w, r, roleEditor)
 	if !ok {
 		return
 	}
@@ -86,7 +86,7 @@ func (h *Handlers) handleGetConfig(w http.ResponseWriter, r *http.Request) {
 
 // PATCH /projects/{project}/configs/{config}  {name?,sort_order,description,tags}
 func (h *Handlers) handleUpdateConfig(w http.ResponseWriter, r *http.Request) {
-	p, ok := h.resolveProject(w, r)
+	p, ok := h.resolveProjectRole(w, r, roleEditor)
 	if !ok {
 		return
 	}
@@ -118,7 +118,7 @@ func (h *Handlers) handleUpdateConfig(w http.ResponseWriter, r *http.Request) {
 
 // DELETE /projects/{project}/configs/{config}  (soft-delete)
 func (h *Handlers) handleDeleteConfig(w http.ResponseWriter, r *http.Request) {
-	p, ok := h.resolveProject(w, r)
+	p, ok := h.resolveProjectRole(w, r, roleEditor)
 	if !ok {
 		return
 	}
@@ -140,7 +140,7 @@ type itemDTO struct {
 	Deleted  bool   `json:"deleted"`
 }
 
-// GET /configs/{config}/items?env=  -> decrypted items at a layer (editor).
+// GET /configs/{config}/items?env=  -> decrypted items at a layer (viewer+).
 func (h *Handlers) handleGetItems(w http.ResponseWriter, r *http.Request) {
 	p, ok := h.resolveProject(w, r)
 	if !ok {
@@ -165,7 +165,7 @@ func (h *Handlers) handleGetItems(w http.ResponseWriter, r *http.Request) {
 
 // PUT /configs/{config}/items?env=  -> replace all items at a layer.
 func (h *Handlers) handlePutItems(w http.ResponseWriter, r *http.Request) {
-	p, ok := h.resolveProject(w, r)
+	p, ok := h.resolveProjectRole(w, r, roleEditor)
 	if !ok {
 		return
 	}
