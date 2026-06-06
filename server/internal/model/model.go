@@ -22,7 +22,26 @@ const (
 
 	ScopeRead  = "read"
 	ScopeWrite = "write"
+
+	// Project member roles, ordered by privilege (compare with RoleRank).
+	RoleViewer = "viewer"
+	RoleEditor = "editor"
+	RoleOwner  = "owner"
 )
+
+// RoleRank returns the privilege rank of a project role (higher = more), or 0
+// for an unknown role. Used for "caller's role >= required role" checks.
+func RoleRank(role string) int {
+	switch role {
+	case RoleViewer:
+		return 1
+	case RoleEditor:
+		return 2
+	case RoleOwner:
+		return 3
+	}
+	return 0
+}
 
 type User struct {
 	ID           uuid.UUID
@@ -33,6 +52,29 @@ type User struct {
 	IsActive     bool
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
+}
+
+// ProjectMember is a user's role on a project (Username/Email joined for display).
+type ProjectMember struct {
+	ProjectID uuid.UUID
+	UserID    uuid.UUID
+	Role      string
+	Username  string
+	Email     string
+	CreatedAt time.Time
+}
+
+// Invitation is an email invitation to join a project with a role.
+type Invitation struct {
+	ID             uuid.UUID
+	ProjectID      uuid.UUID
+	Email          string
+	Role           string
+	InvitedBy      *uuid.UUID
+	ExpiresAt      time.Time
+	AcceptedAt     *time.Time
+	AcceptedUserID *uuid.UUID
+	CreatedAt      time.Time
 }
 
 type Session struct {

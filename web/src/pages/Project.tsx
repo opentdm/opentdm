@@ -14,7 +14,7 @@ import {
   Token,
 } from "@primer/react";
 import { FileIcon, GearIcon, KeyIcon } from "@primer/octicons-react";
-import { api, Config, Environment, Project } from "../api";
+import { api, canWrite, Config, Environment, Project } from "../api";
 
 const fileFormats = ["json", "csv", "xml"];
 
@@ -53,12 +53,17 @@ export default function ProjectPage() {
         <Box>
           <Heading sx={{ fontSize: 4 }}>{project.name}</Heading>
           {project.description && <Text sx={{ color: "fg.muted", display: "block", mt: 1 }}>{project.description}</Text>}
-          <Box sx={{ mt: 2 }}>
+          <Box sx={{ mt: 2, display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
             {envs.map((e) => (
-              <Label key={e.id} sx={{ mr: 2 }} variant={e.is_default ? "accent" : "secondary"}>
+              <Label key={e.id} variant={e.is_default ? "accent" : "secondary"}>
                 {e.slug}
               </Label>
             ))}
+            {project.your_role && (
+              <Label variant="secondary" sx={{ ml: 1 }}>
+                you: {project.your_role}
+              </Label>
+            )}
           </Box>
         </Box>
         <Box sx={{ flex: 1 }} />
@@ -68,13 +73,23 @@ export default function ProjectPage() {
       </Box>
       {err && <Flash variant="danger">{err}</Flash>}
 
-      <ObjectsSection slug={slug} configs={configs} onChange={loadAll} />
+      <ObjectsSection slug={slug} configs={configs} canWrite={canWrite(project.your_role)} onChange={loadAll} />
       <ResolvedSection slug={slug} envs={envs} />
     </Box>
   );
 }
 
-function ObjectsSection({ slug, configs, onChange }: { slug: string; configs: Config[]; onChange: () => void }) {
+function ObjectsSection({
+  slug,
+  configs,
+  canWrite,
+  onChange,
+}: {
+  slug: string;
+  configs: Config[];
+  canWrite: boolean;
+  onChange: () => void;
+}) {
   const nav = useNavigate();
   const [name, setName] = useState("");
   const [format, setFormat] = useState("env");
@@ -107,6 +122,7 @@ function ObjectsSection({ slug, configs, onChange }: { slug: string; configs: Co
   return (
     <Box>
       <Heading sx={{ fontSize: 3, mb: 2 }}>Objects</Heading>
+      {canWrite && (
       <Box
         as="form"
         onSubmit={createConfig}
@@ -139,6 +155,7 @@ function ObjectsSection({ slug, configs, onChange }: { slug: string; configs: Co
           Add object
         </Button>
       </Box>
+      )}
       {err && (
         <Flash variant="danger" sx={{ mb: 2 }}>
           {err}

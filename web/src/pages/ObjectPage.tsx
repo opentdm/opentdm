@@ -19,7 +19,7 @@ import {
   Token,
 } from "@primer/react";
 import { DuplicateIcon, GearIcon, KebabHorizontalIcon, PencilIcon, TrashIcon } from "@primer/octicons-react";
-import { api, Config, Environment } from "../api";
+import { api, canWrite, Config, Environment } from "../api";
 import EditorDispatch from "../components/editors/EditorDispatch";
 import VersionHistory from "../components/VersionHistory";
 
@@ -28,6 +28,7 @@ export default function ObjectPage() {
   const nav = useNavigate();
   const [config, setConfig] = useState<Config | null>(null);
   const [envs, setEnvs] = useState<Environment[]>([]);
+  const [role, setRole] = useState<string | undefined>(undefined);
   const [layer, setLayer] = useState("base");
   const [editing, setEditing] = useState(false);
   const [cloning, setCloning] = useState(false);
@@ -38,9 +39,10 @@ export default function ObjectPage() {
 
   async function load() {
     try {
-      const [c, e] = await Promise.all([api.getConfig(slug, configId), api.listEnvs(slug)]);
+      const [c, e, p] = await Promise.all([api.getConfig(slug, configId), api.listEnvs(slug), api.getProject(slug)]);
       setConfig(c);
       setEnvs(e);
+      setRole(p.your_role);
     } catch (e: any) {
       setErr(e.message);
     }
@@ -64,6 +66,7 @@ export default function ObjectPage() {
   }
 
   const layers = ["base", ...envs.map((e) => e.slug)];
+  const readOnly = !canWrite(role);
 
   return (
     <Box sx={{ display: "grid", gap: 3 }}>
@@ -75,6 +78,7 @@ export default function ObjectPage() {
       </Breadcrumbs>
 
       {err && <Flash variant="danger">{err}</Flash>}
+      {readOnly && <Flash>You have read-only (viewer) access to this project.</Flash>}
 
       <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
         <Heading sx={{ fontSize: 4 }}>{config.name}</Heading>
@@ -84,6 +88,7 @@ export default function ObjectPage() {
           <Token key={t} text={t} />
         ))}
         <Box sx={{ flex: 1 }} />
+        {!readOnly && (
         <ActionMenu>
           <ActionMenu.Anchor>
             <Button leadingVisual={KebabHorizontalIcon}>Object</Button>
@@ -121,6 +126,7 @@ export default function ObjectPage() {
             </ActionList>
           </ActionMenu.Overlay>
         </ActionMenu>
+        )}
       </Box>
 
       {editing && (
@@ -168,7 +174,13 @@ export default function ObjectPage() {
         })}
       </Box>
 
-      <EditorDispatch key={`${config.id}:${layer}:${reloadNonce}`} slug={slug} config={config} layer={layer} />
+      <EditorDispatch
+        key={`${config.id}:${layer}:${reloadNonce}`}
+        slug={slug}
+        config={config}
+        layer={layer}
+        readOnly={readOnly}
+      />
 
       <Box>
         <Button variant="invisible" leadingVisual={GearIcon} onClick={() => setShowHistory((v) => !v)}>

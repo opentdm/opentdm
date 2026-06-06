@@ -29,6 +29,14 @@ type Config struct {
 	MigrateOnStart bool
 	MaxBlobBytes   int64
 	WebDir         string // optional: serve UI from disk instead of embed
+
+	// SMTP for invitation emails (optional; when unset, invite links are logged).
+	SMTPHost     string
+	SMTPPort     int
+	SMTPUsername string
+	SMTPPassword string
+	SMTPFrom     string
+	SMTPTLS      string // starttls (default) | implicit | none
 }
 
 // Load reads configuration from the environment, applying defaults. It returns
@@ -45,7 +53,17 @@ func Load() (*Config, error) {
 		DatabaseURL:    os.Getenv("DATABASE_URL"),
 		MigrateOnStart: envBool("OPENTDM_MIGRATE_ON_START", true),
 		WebDir:         os.Getenv("OPENTDM_WEB_DIR"),
+		SMTPHost:       os.Getenv("OPENTDM_SMTP_HOST"),
+		SMTPUsername:   os.Getenv("OPENTDM_SMTP_USERNAME"),
+		SMTPPassword:   os.Getenv("OPENTDM_SMTP_PASSWORD"),
+		SMTPFrom:       os.Getenv("OPENTDM_SMTP_FROM"),
+		SMTPTLS:        strings.ToLower(os.Getenv("OPENTDM_SMTP_TLS")),
 	}
+	smtpPort, err := strconv.Atoi(envOr("OPENTDM_SMTP_PORT", "0"))
+	if err != nil {
+		return nil, fmt.Errorf("OPENTDM_SMTP_PORT: %w", err)
+	}
+	c.SMTPPort = smtpPort
 
 	maxBlob, err := envInt64("OPENTDM_MAX_BLOB_BYTES", 10*1024*1024)
 	if err != nil {

@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 
 	"github.com/opentdm/opentdm/server/internal/app"
+	"github.com/opentdm/opentdm/server/internal/email"
 )
 
 // ReadyCheck reports whether a dependency is ready to serve. A nil error means
@@ -26,6 +27,8 @@ type Options struct {
 	Service       *app.Service // nil disables the API (Phase 0 health-only mode)
 	SecureCookies bool
 	MaxBlobBytes  int64
+	Mailer        email.Mailer // nil → no-op (invite links are logged)
+	BaseURL       string       // absolute base for invite links; "" derives from request
 	WebHandler    http.Handler // optional SPA handler for non-/api routes
 }
 
@@ -68,13 +71,16 @@ func NewRouter(opts Options) http.Handler {
 
 	// API surface.
 	if opts.Service != nil {
-		h := NewHandlers(opts.Service, logger, opts.SecureCookies, opts.MaxBlobBytes)
+		h := NewHandlers(opts.Service, logger, opts.SecureCookies, opts.MaxBlobBytes, opts.Mailer, opts.BaseURL)
 		r.Route("/api/v1", func(api chi.Router) {
 			api.Use(h.loadAuth)
 
 			// Public / dual-auth endpoints.
 			api.Get("/auth/setup", h.handleSetupStatus)
 			api.Post("/auth/bootstrap", h.handleBootstrap)
+			// Public invitation accept (token-authorized).
+			api.Get("/invitations/{token}", h.handleGetInvitation)
+			api.Post("/invitations/{token}/accept", h.handleAcceptInvitation)
 			api.Post("/auth/login", h.handleLogin)
 			api.Post("/auth/logout", h.handleLogout)
 			// Consumption: session OR scoped service token (checked in handler).
@@ -113,6 +119,15 @@ func NewRouter(opts Options) http.Handler {
 				m.Get("/projects/{project}/tokens", h.handleListTokens)
 				m.Post("/projects/{project}/tokens", h.handleCreateToken)
 				m.Delete("/projects/{project}/tokens/{token}", h.handleRevokeToken)
+				// Project membership (role gating inside the handlers).
+				m.Get("/projects/{project}/members", h.handleListMembers)
+				m.Post("/projects/{project}/members", h.handleAddMember)
+				m.Patch("/projects/{project}/members/{user}", h.handleUpdateMember)
+				m.Delete("/projects/{project}/members/{user}", h.handleRemoveMember)
+				// Email invitations (owner-gated in the handlers).
+				m.Get("/projects/{project}/invitations", h.handleListInvitations)
+				m.Post("/projects/{project}/invitations", h.handleCreateInvitation)
+				m.Delete("/projects/{project}/invitations/{invitation}", h.handleRevokeInvitation)
 
 				// PAT lifecycle is session-only (a PAT cannot mint/revoke PATs).
 				m.Group(func(s chi.Router) {
@@ -120,6 +135,13 @@ func NewRouter(opts Options) http.Handler {
 					s.Get("/pats", h.handleListPATs)
 					s.Post("/pats", h.handleCreatePAT)
 					s.Delete("/pats/{pat}", h.handleRevokePAT)
+				})
+
+				// Instance-admin user directory.
+				m.Group(func(a chi.Router) {
+					a.Use(h.requireAdmin)
+					a.Get("/users", h.handleListUsers)
+					a.Patch("/users/{user}", h.handleUpdateUser)
 				})
 			})
 		})

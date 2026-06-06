@@ -25,7 +25,7 @@ func fileContentType(format string) string {
 // PUT /projects/{project}/configs/{config}/blob?env=&comment=
 // Raw request body is the file content (size-limited). Cuts a version.
 func (h *Handlers) handlePutBlob(w http.ResponseWriter, r *http.Request) {
-	p, ok := h.resolveProject(w, r)
+	p, ok := h.resolveProjectRole(w, r, roleEditor)
 	if !ok {
 		return
 	}

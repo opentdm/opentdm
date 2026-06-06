@@ -11,6 +11,7 @@ import (
 
 	"github.com/opentdm/opentdm/server/internal/app"
 	"github.com/opentdm/opentdm/server/internal/config"
+	"github.com/opentdm/opentdm/server/internal/email"
 	"github.com/opentdm/opentdm/server/internal/httpapi"
 )
 
@@ -23,12 +24,23 @@ type Server struct {
 // New builds a Server from config, a logger, the service, an optional web UI
 // handler, and the readiness checks to expose at /readyz.
 func New(cfg *config.Config, logger *slog.Logger, svc *app.Service, secureCookies bool, web http.Handler, checks ...httpapi.ReadyCheck) *Server {
+	mailer := email.New(email.Config{
+		Host: cfg.SMTPHost, Port: cfg.SMTPPort, Username: cfg.SMTPUsername,
+		Password: cfg.SMTPPassword, From: cfg.SMTPFrom, TLS: cfg.SMTPTLS,
+	})
+	if mailer.Enabled() {
+		logger.Info("smtp_configured", "host", cfg.SMTPHost, "from", cfg.SMTPFrom)
+	} else {
+		logger.Info("smtp_unconfigured", "note", "invitation accept links will be logged")
+	}
 	handler := httpapi.NewRouter(httpapi.Options{
 		Logger:        logger,
 		ReadyChecks:   checks,
 		Service:       svc,
 		SecureCookies: secureCookies,
 		MaxBlobBytes:  cfg.MaxBlobBytes,
+		Mailer:        mailer,
+		BaseURL:       cfg.Host,
 		WebHandler:    web,
 	})
 	return &Server{

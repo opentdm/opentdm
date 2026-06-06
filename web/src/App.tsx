@@ -10,6 +10,8 @@ import ProjectPage from "./pages/Project";
 import ObjectPage from "./pages/ObjectPage";
 import ProjectSettings from "./pages/ProjectSettings";
 import Settings from "./pages/Settings";
+import Users from "./pages/Users";
+import AcceptInvite from "./pages/AcceptInvite";
 
 export default function App() {
   const [me, setMe] = useState<User | null | undefined>(undefined);
@@ -60,6 +62,8 @@ export default function App() {
         }
       />
       <Route path="/login" element={me ? <Navigate to="/" replace /> : <Login onDone={refresh} />} />
+      {/* Public: reachable whether or not signed in (accepting creates + logs in). */}
+      <Route path="/accept-invite" element={<AcceptInvite onDone={refresh} />} />
       <Route
         path="/*"
         element={
@@ -94,6 +98,11 @@ function Shell({ me, onLogout }: { me: User; onLogout: () => void }) {
         </Header.Item>
         <Header.Item full />
         <Header.Item>
+          {me.is_admin && (
+            <Header.Link as={RouterLink} to="/users" sx={{ mr: 3 }}>
+              Users
+            </Header.Link>
+          )}
           <Header.Link as={RouterLink} to="/settings" sx={{ mr: 3 }}>
             Tokens
           </Header.Link>
@@ -114,6 +123,7 @@ function Shell({ me, onLogout }: { me: User; onLogout: () => void }) {
           <Route path="/projects/:slug/configs/:configId" element={<ObjectPage />} />
           <Route path="/projects/:slug/settings" element={<ProjectSettings />} />
           <Route path="/settings" element={<Settings />} />
+          {me.is_admin && <Route path="/users" element={<Users />} />}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Box>
