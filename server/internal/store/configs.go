@@ -46,6 +46,36 @@ func (q *Queries) GetConfig(ctx context.Context, id uuid.UUID) (model.Config, er
 	return c, mapNoRows(err)
 }
 
+// UpdateConfig updates a config's name/sort_order/description and replaces its
+// tags. Run inside a transaction.
+func (q *Queries) UpdateConfig(ctx context.Context, c model.Config) (model.Config, error) {
+	if _, err := q.db.Exec(ctx, "UPDATE configs SET name = $2, sort_order = $3, description = $4 WHERE id = $1",
+		c.ID, c.Name, c.SortOrder, c.Description); err != nil {
+		return model.Config{}, err
+	}
+	if _, err := q.db.Exec(ctx, "DELETE FROM config_tags WHERE config_id = $1", c.ID); err != nil {
+		return model.Config{}, err
+	}
+	for _, tag := range c.Tags {
+		if _, err := q.db.Exec(ctx, "INSERT INTO config_tags (config_id, tag) VALUES ($1, $2) ON CONFLICT DO NOTHING", c.ID, tag); err != nil {
+			return model.Config{}, err
+		}
+	}
+	return q.GetConfig(ctx, c.ID)
+}
+
+// ArchiveConfig soft-deletes a config (scoped to its project).
+func (q *Queries) ArchiveConfig(ctx context.Context, projectID, configID uuid.UUID) error {
+	tag, err := q.db.Exec(ctx, "UPDATE configs SET archived_at = now() WHERE id = $1 AND project_id = $2 AND archived_at IS NULL", configID, projectID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
 // ListConfigs returns non-archived configs for a project, ordered by sort_order.
 func (q *Queries) ListConfigs(ctx context.Context, projectID uuid.UUID) ([]model.Config, error) {
 	rows, err := q.db.Query(ctx, configSelect+

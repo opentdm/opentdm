@@ -7,6 +7,8 @@ import Setup from "./pages/Setup";
 import Login from "./pages/Login";
 import Projects from "./pages/Projects";
 import ProjectPage from "./pages/Project";
+import ObjectPage from "./pages/ObjectPage";
+import ProjectSettings from "./pages/ProjectSettings";
 import Settings from "./pages/Settings";
 
 export default function App() {
@@ -96,7 +98,11 @@ function Shell({ me, onLogout }: { me: User; onLogout: () => void }) {
             Tokens
           </Header.Link>
           <Text sx={{ color: "fg.onEmphasis", mr: 3 }}>{me.username}</Text>
-          <Header.Link as="button" onClick={logout}>
+          <Header.Link
+            as="button"
+            onClick={logout}
+            sx={{ background: "transparent", border: 0, p: 0, font: "inherit", cursor: "pointer" }}
+          >
             Sign out
           </Header.Link>
         </Header.Item>
@@ -105,6 +111,8 @@ function Shell({ me, onLogout }: { me: User; onLogout: () => void }) {
         <Routes>
           <Route path="/" element={<Projects />} />
           <Route path="/projects/:slug" element={<ProjectPage />} />
+          <Route path="/projects/:slug/configs/:configId" element={<ObjectPage />} />
+          <Route path="/projects/:slug/settings" element={<ProjectSettings />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
