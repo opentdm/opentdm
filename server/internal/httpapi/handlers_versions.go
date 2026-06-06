@@ -96,7 +96,7 @@ func (h *Handlers) handleDiff(w http.ResponseWriter, r *http.Request) {
 
 // POST /configs/{config}/rollback  {env, to_version, comment}
 func (h *Handlers) handleRollback(w http.ResponseWriter, r *http.Request) {
-	p, ok := h.resolveProject(w, r)
+	p, ok := h.resolveProjectRole(w, r, roleEditor)
 	if !ok {
 		return
 	}

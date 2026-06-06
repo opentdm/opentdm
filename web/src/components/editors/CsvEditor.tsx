@@ -8,11 +8,12 @@ interface CsvEditorProps {
   slug: string;
   config: Config;
   layer: string;
+  readOnly?: boolean;
 }
 
 // CSV object editor: an editable code view (source of truth) plus a read-only
 // parsed table preview so the shape is obvious at a glance.
-export default function CsvEditor({ slug, config, layer }: CsvEditorProps) {
+export default function CsvEditor({ slug, config, layer, readOnly }: CsvEditorProps) {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
@@ -52,15 +53,17 @@ export default function CsvEditor({ slug, config, layer }: CsvEditorProps) {
       )}
       <Box sx={{ borderWidth: 1, borderStyle: "solid", borderColor: "border.default", borderRadius: 2, overflow: "hidden" }}>
         <Suspense fallback={<Box sx={{ p: 3 }}><Spinner size="small" /></Box>}>
-          <CodeMirrorLazy value={text} onChange={setText} language="text" height="240px" />
+          <CodeMirrorLazy value={text} onChange={setText} language="text" height="240px" readOnly={readOnly} />
         </Suspense>
       </Box>
-      <Box sx={{ mt: 2, display: "flex", gap: 2, alignItems: "center" }}>
-        <Button variant="primary" onClick={save}>
-          Save {layer}
-        </Button>
-        {msg && <Text sx={{ color: "success.fg" }}>{msg}</Text>}
-      </Box>
+      {!readOnly && (
+        <Box sx={{ mt: 2, display: "flex", gap: 2, alignItems: "center" }}>
+          <Button variant="primary" onClick={save}>
+            Save {layer}
+          </Button>
+          {msg && <Text sx={{ color: "success.fg" }}>{msg}</Text>}
+        </Box>
+      )}
       {rows.length > 0 && (
         <Box sx={{ mt: 3 }}>
           <Text sx={{ fontWeight: "bold", display: "block", mb: 1 }}>Preview</Text>

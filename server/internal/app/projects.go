@@ -60,6 +60,10 @@ func (s *Service) CreateProject(ctx context.Context, creator model.User, slug, n
 				return err
 			}
 		}
+		// The creator owns the project.
+		if err := q.AddMember(ctx, p.ID, creatorID, model.RoleOwner); err != nil {
+			return err
+		}
 		created = p
 		return nil
 	})

@@ -56,3 +56,32 @@ func (q *Queries) ListProjects(ctx context.Context) ([]model.Project, error) {
 	}
 	return out, rows.Err()
 }
+
+const projectColsP = `p.id, p.slug, p.name, COALESCE(p.description,''), p.created_by,
+	p.dek_wrapped, p.dek_key_ref, p.dek_version, p.crypto_version, p.archived_at, p.created_at, p.updated_at`
+
+// ListProjectsForUser returns the non-archived projects a user is a member of,
+// newest first, paired with the user's role on each.
+func (q *Queries) ListProjectsForUser(ctx context.Context, userID uuid.UUID) ([]model.Project, []string, error) {
+	rows, err := q.db.Query(ctx, "SELECT "+projectColsP+", m.role::text "+
+		"FROM projects p JOIN project_members m ON m.project_id = p.id "+
+		"WHERE m.user_id = $1 AND p.archived_at IS NULL ORDER BY p.created_at DESC", userID)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer rows.Close()
+	var projects []model.Project
+	var roles []string
+	for rows.Next() {
+		var p model.Project
+		var role string
+		if err := rows.Scan(&p.ID, &p.Slug, &p.Name, &p.Description, &p.CreatedBy,
+			&p.DEKWrapped, &p.DEKKeyRef, &p.DEKVersion, &p.CryptoVersion, &p.ArchivedAt, &p.CreatedAt, &p.UpdatedAt,
+			&role); err != nil {
+			return nil, nil, err
+		}
+		projects = append(projects, p)
+		roles = append(roles, role)
+	}
+	return projects, roles, rows.Err()
+}

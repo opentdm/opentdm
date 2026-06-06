@@ -12,11 +12,45 @@ type projectDTO struct {
 	Slug        string    `json:"slug"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
+	YourRole    string    `json:"your_role,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
 }
 
 func toProjectDTO(p model.Project) projectDTO {
 	return projectDTO{ID: p.ID.String(), Slug: p.Slug, Name: p.Name, Description: p.Description, CreatedAt: p.CreatedAt}
+}
+
+func toProjectDTOWithRole(p model.Project, role string) projectDTO {
+	d := toProjectDTO(p)
+	d.YourRole = role
+	return d
+}
+
+type memberDTO struct {
+	UserID   string `json:"user_id"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	Role     string `json:"role"`
+}
+
+func toMemberDTO(m model.ProjectMember) memberDTO {
+	return memberDTO{UserID: m.UserID.String(), Username: m.Username, Email: m.Email, Role: m.Role}
+}
+
+type adminUserDTO struct {
+	ID        string    `json:"id"`
+	Username  string    `json:"username"`
+	Email     string    `json:"email"`
+	IsAdmin   bool      `json:"is_admin"`
+	IsActive  bool      `json:"is_active"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+func toAdminUserDTO(u model.User) adminUserDTO {
+	return adminUserDTO{
+		ID: u.ID.String(), Username: u.Username, Email: u.Email,
+		IsAdmin: u.IsAdmin, IsActive: u.IsActive, CreatedAt: u.CreatedAt,
+	}
 }
 
 type environmentDTO struct {

@@ -200,7 +200,7 @@ func (s *Service) appendVersionDedup(ctx context.Context, q *store.Queries, conf
 	return q.AppendVersion(ctx, configID, envID, n, in)
 }
 
-// GetItems returns decrypted items at one (config, layer) for the editor.
+// GetItems returns decrypted items at one (config, layer) for the editor/viewer.
 func (s *Service) GetItems(ctx context.Context, project model.Project, config model.Config, envSlug string) ([]VarOutput, error) {
 	envID, envAAD, err := s.layer(ctx, project.ID, envSlug)
 	if err != nil {

@@ -14,16 +14,30 @@ import (
 // scoped service token (CI/CLI/SDK). Returns the merged variable set as a bare
 // body in the requested format.
 func (h *Handlers) handleResolve(w http.ResponseWriter, r *http.Request) {
-	p, ok := h.resolveProject(w, r)
-	if !ok {
-		return
-	}
+	// Authenticate before any project lookup so an anonymous caller gets a uniform
+	// 401 rather than learning whether a project exists (404 vs 401).
 	ctx := r.Context()
 	tok, hasTok := tokenFrom(ctx)
 	_, hasUser := userFrom(ctx)
 	if !hasTok && !hasUser {
 		WriteProblem(w, r, http.StatusUnauthorized, "unauthorized", "Authentication required", "")
 		return
+	}
+	p, ok := h.loadProject(w, r)
+	if !ok {
+		return
+	}
+	// A session/PAT user (no service token) must be a member of the project;
+	// a service token carries its own project+env scope (checked below).
+	if !hasTok {
+		user, _ := userFrom(ctx)
+		if _, member, err := h.svc.ProjectRole(ctx, user, p.ID); err != nil {
+			h.writeErr(w, r, err)
+			return
+		} else if !member {
+			WriteProblem(w, r, http.StatusNotFound, "not_found", "Project not found", "")
+			return
+		}
 	}
 
 	envSlug := r.URL.Query().Get("env")
