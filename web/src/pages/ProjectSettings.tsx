@@ -13,9 +13,10 @@ import {
   Text,
   TextInput,
 } from "@primer/react";
-import { api, Environment, Project, Token as APIToken } from "../api";
+import { api, canWrite, Environment, Project, Token as APIToken } from "../api";
 import EnvironmentManager from "../components/EnvironmentManager";
 import EnvironmentCloner from "../components/EnvironmentCloner";
+import MembersManager from "../components/MembersManager";
 
 export default function ProjectSettings() {
   const { slug = "" } = useParams();
@@ -42,9 +43,18 @@ export default function ProjectSettings() {
         </Breadcrumbs>
         <Heading sx={{ fontSize: 4, mt: 2 }}>{project.name} settings</Heading>
       </Box>
-      <EnvironmentManager slug={slug} />
-      <EnvironmentCloner slug={slug} />
-      <TokensSection slug={slug} />
+      <MembersManager slug={slug} role={project.your_role} />
+      {canWrite(project.your_role) ? (
+        <>
+          <EnvironmentManager slug={slug} />
+          <EnvironmentCloner slug={slug} />
+          <TokensSection slug={slug} />
+        </>
+      ) : (
+        <Text sx={{ color: "fg.muted" }}>
+          You have read-only (viewer) access — environment and token management is limited to editors and owners.
+        </Text>
+      )}
     </Box>
   );
 }

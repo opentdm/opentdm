@@ -15,13 +15,14 @@ interface CodeEditorProps {
   slug: string;
   config: Config;
   layer: string;
+  readOnly?: boolean;
 }
 
 // JSON/XML object editor: a real code editor with Format + client-side
 // validate-on-save. The server's codec.ValidateFile is the authority — we
 // surface its detail — but blocking obviously-invalid content here avoids a
 // round-trip and gives instant feedback.
-export default function CodeEditor({ slug, config, layer }: CodeEditorProps) {
+export default function CodeEditor({ slug, config, layer, readOnly }: CodeEditorProps) {
   const language: EditorLanguage = config.format === "json" ? "json" : "xml";
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
@@ -79,19 +80,23 @@ export default function CodeEditor({ slug, config, layer }: CodeEditorProps) {
       )}
       <Box sx={{ borderWidth: 1, borderStyle: "solid", borderColor: "border.default", borderRadius: 2, overflow: "hidden" }}>
         <Suspense fallback={<Box sx={{ p: 3 }}><Spinner size="small" /></Box>}>
-          <CodeMirrorLazy value={text} onChange={setText} language={language} />
+          <CodeMirrorLazy value={text} onChange={setText} language={language} readOnly={readOnly} />
         </Suspense>
       </Box>
-      <Box sx={{ mt: 2, display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap" }}>
-        <Button variant="primary" onClick={save}>
-          Save {layer}
-        </Button>
-        <Button onClick={format}>Format</Button>
-        {msg && <Text sx={{ color: "success.fg" }}>{msg}</Text>}
-      </Box>
-      <Text sx={{ color: "fg.muted", fontSize: 0, display: "block", mt: 2 }}>
-        Editing the <b>{layer}</b> layer. File content fully replaces the layer on save.
-      </Text>
+      {!readOnly && (
+        <>
+          <Box sx={{ mt: 2, display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap" }}>
+            <Button variant="primary" onClick={save}>
+              Save {layer}
+            </Button>
+            <Button onClick={format}>Format</Button>
+            {msg && <Text sx={{ color: "success.fg" }}>{msg}</Text>}
+          </Box>
+          <Text sx={{ color: "fg.muted", fontSize: 0, display: "block", mt: 2 }}>
+            Editing the <b>{layer}</b> layer. File content fully replaces the layer on save.
+          </Text>
+        </>
+      )}
     </Box>
   );
 }

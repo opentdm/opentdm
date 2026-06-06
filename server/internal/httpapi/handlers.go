@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/opentdm/opentdm/server/internal/app"
+	"github.com/opentdm/opentdm/server/internal/email"
 )
 
 // Handlers holds the dependencies shared by all HTTP handlers.
@@ -15,15 +16,24 @@ type Handlers struct {
 	logger        *slog.Logger
 	secureCookies bool
 	maxBlobBytes  int64
+	mailer        email.Mailer
+	baseURL       string // absolute base for invite links; "" derives from request
 }
 
 // NewHandlers builds the handler set. secureCookies sets the Secure flag on
-// auth cookies (enable behind HTTPS); maxBlobBytes caps file uploads.
-func NewHandlers(svc *app.Service, logger *slog.Logger, secureCookies bool, maxBlobBytes int64) *Handlers {
+// auth cookies (enable behind HTTPS); maxBlobBytes caps file uploads; mailer
+// (nil → no-op) sends invitations; baseURL is the absolute base for invite links.
+func NewHandlers(svc *app.Service, logger *slog.Logger, secureCookies bool, maxBlobBytes int64, mailer email.Mailer, baseURL string) *Handlers {
 	if logger == nil {
 		logger = slog.Default()
 	}
-	return &Handlers{svc: svc, logger: logger, secureCookies: secureCookies, maxBlobBytes: maxBlobBytes}
+	if mailer == nil {
+		mailer = email.Noop{}
+	}
+	return &Handlers{
+		svc: svc, logger: logger, secureCookies: secureCookies, maxBlobBytes: maxBlobBytes,
+		mailer: mailer, baseURL: baseURL,
+	}
 }
 
 // decodeJSON reads and size-limits a JSON request body into dst.

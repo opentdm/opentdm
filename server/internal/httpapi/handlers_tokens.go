@@ -29,7 +29,7 @@ func (h *Handlers) handleListTokens(w http.ResponseWriter, r *http.Request) {
 
 // POST /projects/{project}/tokens -> mint a token; the raw secret is shown once.
 func (h *Handlers) handleCreateToken(w http.ResponseWriter, r *http.Request) {
-	p, ok := h.resolveProject(w, r)
+	p, ok := h.resolveProjectRole(w, r, roleEditor)
 	if !ok {
 		return
 	}
@@ -66,7 +66,7 @@ func (h *Handlers) handleCreateToken(w http.ResponseWriter, r *http.Request) {
 
 // DELETE /projects/{project}/tokens/{token}
 func (h *Handlers) handleRevokeToken(w http.ResponseWriter, r *http.Request) {
-	p, ok := h.resolveProject(w, r)
+	p, ok := h.resolveProjectRole(w, r, roleEditor)
 	if !ok {
 		return
 	}

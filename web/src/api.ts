@@ -12,8 +12,46 @@ export interface Project {
   slug: string;
   name: string;
   description: string;
+  your_role?: string; // viewer | editor | owner (caller's role)
   created_at: string;
 }
+export interface Member {
+  user_id: string;
+  username: string;
+  email: string;
+  role: string;
+}
+export interface AdminUser {
+  id: string;
+  username: string;
+  email: string;
+  is_admin: boolean;
+  is_active: boolean;
+  created_at: string;
+}
+export interface Invitation {
+  id: string;
+  email: string;
+  role: string;
+  expires_at: string;
+}
+export interface InvitationInfo {
+  email: string;
+  role: string;
+  project: string;
+  project_slug: string;
+}
+export interface InvitationResult {
+  id: string;
+  email: string;
+  role: string;
+  email_sent: boolean;
+  accept_url?: string; // present only when SMTP is unconfigured
+}
+
+// Role helpers (UX gating only — the server is the enforcement authority).
+export const canWrite = (role?: string): boolean => role === "editor" || role === "owner";
+export const canManage = (role?: string): boolean => role === "owner";
 export interface Environment {
   id: string;
   slug: string;
@@ -142,6 +180,30 @@ export const api = {
   deleteEnv: (slug: string, id: string) => request<unknown>("DELETE", `/projects/${slug}/environments/${id}`),
   reorderEnvs: (slug: string, orderedIds: string[]) =>
     request<Environment[]>("POST", `/projects/${slug}/environments/reorder`, { ordered_ids: orderedIds }),
+
+  getProject: (slug: string) => request<Project>("GET", `/projects/${slug}`),
+
+  // --- members ---
+  listMembers: (slug: string) => request<Member[]>("GET", `/projects/${slug}/members`),
+  addMember: (slug: string, body: { user: string; role: string }) =>
+    request<Member>("POST", `/projects/${slug}/members`, body),
+  updateMember: (slug: string, userId: string, role: string) =>
+    request<unknown>("PATCH", `/projects/${slug}/members/${userId}`, { role }),
+  removeMember: (slug: string, userId: string) => request<unknown>("DELETE", `/projects/${slug}/members/${userId}`),
+
+  // --- invitations ---
+  listInvitations: (slug: string) => request<Invitation[]>("GET", `/projects/${slug}/invitations`),
+  createInvitation: (slug: string, body: { email: string; role: string }) =>
+    request<InvitationResult>("POST", `/projects/${slug}/invitations`, body),
+  revokeInvitation: (slug: string, id: string) => request<unknown>("DELETE", `/projects/${slug}/invitations/${id}`),
+  getInvitation: (token: string) => request<InvitationInfo>("GET", `/invitations/${encodeURIComponent(token)}`),
+  acceptInvitation: (token: string, body: { username: string; password: string }) =>
+    request<User>("POST", `/invitations/${encodeURIComponent(token)}/accept`, body),
+
+  // --- admin user directory ---
+  listUsers: () => request<AdminUser[]>("GET", `/users`),
+  updateUser: (id: string, body: { is_active?: boolean; is_admin?: boolean }) =>
+    request<AdminUser>("PATCH", `/users/${id}`, body),
 
   getConfig: (slug: string, id: string) => request<Config>("GET", `/projects/${slug}/configs/${id}`),
   cloneConfigLayer: (slug: string, id: string, body: { from: string; to: string; with_values: boolean }) =>
