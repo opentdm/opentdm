@@ -83,6 +83,7 @@ func cmdPull(args []string) int {
 	env := fs.String("env", "", "environment slug (required)")
 	format := fs.String("format", "dotenv", "output format: dotenv|json|shell|yaml|properties")
 	output := fs.String("o", "", "output file (default stdout)")
+	showCollisions := fs.Bool("collisions", false, "list cross-config key collisions on stderr")
 	if err := fs.Parse(args); err != nil {
 		return 2
 	}
@@ -91,21 +92,44 @@ func cmdPull(args []string) int {
 		return code
 	}
 	client := apiclient.New(cfg.Host, cfg.Token)
-	body, _, err := client.Resolve(context.Background(), cfg.Project, *env, *format)
+	res, err := client.Resolve(context.Background(), cfg.Project, *env, *format)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
+	warnCollisions(client, cfg, *env, res.Collisions, *showCollisions)
 	if *output == "" || *output == "-" {
-		_, _ = os.Stdout.Write(body)
+		_, _ = os.Stdout.Write(res.Body)
 		return 0
 	}
-	if err := writeFileAtomic(*output, body); err != nil {
+	if err := writeFileAtomic(*output, res.Body); err != nil {
 		fmt.Fprintln(os.Stderr, "write:", err)
 		return 1
 	}
 	fmt.Fprintf(os.Stderr, "wrote %s\n", *output)
 	return 0
+}
+
+// warnCollisions reports cross-config key collisions on stderr (never stdout, so
+// it can't corrupt piped/redirected output). With detail it fetches and lists
+// each shadowed key via the meta=true envelope.
+func warnCollisions(client *apiclient.Client, cfg Config, env string, count int, detail bool) {
+	if count <= 0 {
+		return
+	}
+	if !detail {
+		fmt.Fprintf(os.Stderr, "warning: %d cross-config key collision(s); rerun with --collisions for detail\n", count)
+		return
+	}
+	_, collisions, err := client.ResolveWithMeta(context.Background(), cfg.Project, env)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "warning: %d cross-config key collision(s) (detail unavailable: %v)\n", count, err)
+		return
+	}
+	fmt.Fprintf(os.Stderr, "warning: %d cross-config key collision(s):\n", len(collisions))
+	for _, c := range collisions {
+		fmt.Fprintf(os.Stderr, "  %s — kept %q, shadowed %q\n", c.Key, c.WinningConfig, c.LosingConfig)
+	}
 }
 
 func cmdRun(args []string) int {
@@ -128,10 +152,13 @@ func cmdRun(args []string) int {
 		return code
 	}
 	client := apiclient.New(cfg.Host, cfg.Token)
-	vars, err := client.ResolveMap(context.Background(), cfg.Project, *env)
+	vars, collisions, err := client.ResolveMap(context.Background(), cfg.Project, *env)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
+	}
+	if collisions > 0 {
+		fmt.Fprintf(os.Stderr, "warning: %d cross-config key collision(s) in %s/%s\n", collisions, cfg.Project, *env)
 	}
 	return runProcess(cmdArgs, mergeEnv(os.Environ(), vars))
 }
