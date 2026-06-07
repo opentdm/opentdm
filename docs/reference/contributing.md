@@ -18,7 +18,7 @@ go vet ./server/... && gofmt -l server cli apiclient   # gofmt output must be em
 docker run -d --name otdm-pg -e POSTGRES_USER=opentdm -e POSTGRES_PASSWORD=opentdm \
   -e POSTGRES_DB=opentdm_test -p 5432:5432 postgres:16-alpine
 export TEST_DATABASE_URL="postgres://opentdm:opentdm@localhost:5432/opentdm_test?sslmode=disable"
-go test -race ./server/...
+go test -race -p 1 ./server/...   # -p 1: store + httpapi e2e share one DB; don't run them concurrently
 
 # web UI:
 cd web && npm install && npm run build     # writes ../server/internal/webui/dist

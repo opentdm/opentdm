@@ -49,6 +49,14 @@ export interface InvitationResult {
   accept_url?: string; // present only when SMTP is unconfigured
 }
 
+// A cross-config key collision in a resolved environment: the winning config
+// supplied the value, shadowing the losing one.
+export interface Collision {
+  key: string;
+  winning_config: string;
+  losing_config: string;
+}
+
 // Role helpers (UX gating only — the server is the enforcement authority).
 export const canWrite = (role?: string): boolean => role === "editor" || role === "owner";
 export const canManage = (role?: string): boolean => role === "owner";
@@ -285,6 +293,32 @@ export const api = {
       { credentials: "include" },
     );
     return resp.text();
+  },
+  // Resolve with the JSON envelope: the merged values plus full collision detail.
+  resolveMeta: async (
+    project: string,
+    env: string,
+  ): Promise<{ values: Record<string, string>; collisions: Collision[] }> => {
+    const resp = await fetch(
+      `/api/v1/projects/${encodeURIComponent(project)}/resolve?env=${encodeURIComponent(env)}&meta=true`,
+      { credentials: "include" },
+    );
+    const text = await resp.text();
+    if (!resp.ok) {
+      let msg = resp.statusText;
+      try {
+        const j = JSON.parse(text);
+        msg = j.detail || j.title || msg;
+      } catch {
+        /* non-JSON */
+      }
+      throw new APIError(resp.status, msg);
+    }
+    const json = JSON.parse(text);
+    return {
+      values: (json.data ?? {}) as Record<string, string>,
+      collisions: (json.meta?.collisions ?? []) as Collision[],
+    };
   },
   // Raw text GET (for file blobs / version snapshots).
   getText: async (path: string): Promise<string> => {
