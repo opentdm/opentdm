@@ -127,6 +127,8 @@ export interface Token {
   scope: string;
   environment_ids: string[];
   created_at: string;
+  last_used_at?: string | null;
+  revoked_at?: string | null;
 }
 
 export interface CloneSummary {
@@ -287,9 +289,11 @@ export const api = {
     request<Item[]>("GET", `/projects/${slug}/configs/${configId}/items?env=${encodeURIComponent(env)}`),
   putItems: (slug: string, configId: string, env: string, items: Item[], comment?: string) =>
     request<unknown>("PUT", `/projects/${slug}/configs/${configId}/items?env=${encodeURIComponent(env)}`, { items, comment }),
-  resolveText: async (project: string, env: string, format: string): Promise<string> => {
+  resolveText: async (project: string, env: string, format: string, includeSecrets = true): Promise<string> => {
+    const params = new URLSearchParams({ env, format });
+    if (!includeSecrets) params.set("include_secrets", "false");
     const resp = await fetch(
-      `/api/v1/projects/${encodeURIComponent(project)}/resolve?env=${encodeURIComponent(env)}&format=${format}`,
+      `/api/v1/projects/${encodeURIComponent(project)}/resolve?${params.toString()}`,
       { credentials: "include" },
     );
     return resp.text();
