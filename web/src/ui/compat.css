@@ -1,0 +1,6 @@
+/* Hover affordance for clickable list rows. This is the one styled-system sx
+   ":hover" in the app that the Primer-38 compat shim can't express as an inline
+   style; expressed here as a class using Primer's functional color variable. */
+.otdm-hover-row:hover {
+  background-color: var(--bgColor-muted, #f6f8fa);
+}

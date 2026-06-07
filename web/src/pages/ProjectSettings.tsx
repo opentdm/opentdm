@@ -12,7 +12,7 @@ import {
   Spinner,
   Text,
   TextInput,
-} from "@primer/react";
+} from "../ui/primer";
 import { api, canWrite, Environment, Project, Token as APIToken } from "../api";
 import EnvironmentManager from "../components/EnvironmentManager";
 import EnvironmentCloner from "../components/EnvironmentCloner";

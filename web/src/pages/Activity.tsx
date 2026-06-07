@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { Link as RouterLink, useParams } from "react-router-dom";
-import { Box, Breadcrumbs, Heading, Text } from "@primer/react";
+import { Box, Breadcrumbs, Heading, Text } from "../ui/primer";
 import { api } from "../api";
 import AuditFeed from "../components/AuditFeed";
 

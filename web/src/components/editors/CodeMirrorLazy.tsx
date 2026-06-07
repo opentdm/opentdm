@@ -2,7 +2,7 @@ import CodeMirror from "@uiw/react-codemirror";
 import { json } from "@codemirror/lang-json";
 import { xml } from "@codemirror/lang-xml";
 import { githubLight, githubDark } from "@uiw/codemirror-theme-github";
-import { useTheme } from "@primer/react";
+import { useTheme } from "../../ui/primer";
 
 export type EditorLanguage = "json" | "xml" | "text";
 

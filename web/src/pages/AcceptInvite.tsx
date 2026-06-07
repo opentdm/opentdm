@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Box, Button, Flash, FormControl, Heading, Spinner, Text, TextInput } from "@primer/react";
+import { Box, Button, Flash, FormControl, Heading, Spinner, Text, TextInput } from "../ui/primer";
 import { api, InvitationInfo } from "../api";
 
 // Public page reached from an invitation link. Shows the project + role, lets the
