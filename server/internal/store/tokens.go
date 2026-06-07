@@ -83,9 +83,17 @@ func (q *Queries) RevokeToken(ctx context.Context, projectID, tokenID uuid.UUID)
 	return nil
 }
 
-// TouchToken records last use. (v1: direct update; a coalescing flusher is a
-// future optimization — see DECISIONS.md.)
-func (q *Queries) TouchToken(ctx context.Context, id uuid.UUID, at time.Time) error {
-	_, err := q.db.Exec(ctx, "UPDATE api_tokens SET last_used_at = $2 WHERE id = $1", id, at)
+// TouchTokensBatch records last use for many tokens in a single statement,
+// pairing ids[i] with ats[i]. The app layer coalesces per-request touches in
+// memory and calls this on an interval, so /resolve never writes per request
+// (see DECISIONS.md). A nil/empty batch is a no-op.
+func (q *Queries) TouchTokensBatch(ctx context.Context, ids []uuid.UUID, ats []time.Time) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	_, err := q.db.Exec(ctx, `
+		UPDATE api_tokens AS t SET last_used_at = v.at
+		FROM (SELECT unnest($1::uuid[]) AS id, unnest($2::timestamptz[]) AS at) AS v
+		WHERE t.id = v.id`, ids, ats)
 	return err
 }

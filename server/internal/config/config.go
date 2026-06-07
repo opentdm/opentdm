@@ -9,6 +9,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // maxRateLimit bounds the auth rate-limit knobs — a sanity ceiling that also
@@ -38,6 +39,9 @@ type Config struct {
 	// bootstrap, invitation accept). RPM <= 0 disables it.
 	AuthRateLimitRPM   int
 	AuthRateLimitBurst int
+
+	// How often buffered token/PAT last-used timestamps are flushed to the DB.
+	TokenTouchInterval time.Duration
 
 	// SMTP for invitation emails (optional; when unset, invite links are logged).
 	SMTPHost     string
@@ -96,6 +100,15 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("OPENTDM_AUTH_RATELIMIT_BURST: must be between 0 and %d", maxRateLimit)
 	}
 	c.AuthRateLimitBurst = int(rlBurst)
+
+	touchSecs, err := envInt64("OPENTDM_TOKEN_TOUCH_INTERVAL", 30)
+	if err != nil {
+		return nil, err
+	}
+	if touchSecs <= 0 {
+		touchSecs = 30
+	}
+	c.TokenTouchInterval = time.Duration(touchSecs) * time.Second
 
 	if c.MasterKey, err = decodeKey("OPENTDM_MASTER_KEY", 32, true); err != nil {
 		return nil, err

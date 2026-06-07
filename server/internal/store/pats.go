@@ -69,8 +69,16 @@ func (q *Queries) RevokeUserPAT(ctx context.Context, userID, patID uuid.UUID) er
 	return nil
 }
 
-// TouchUserPAT records last use (best-effort).
-func (q *Queries) TouchUserPAT(ctx context.Context, id uuid.UUID, at time.Time) error {
-	_, err := q.db.Exec(ctx, "UPDATE user_pats SET last_used_at = $2 WHERE id = $1", id, at)
+// TouchUserPATsBatch records last use for many PATs in one statement, pairing
+// ids[i] with ats[i]. Driven by the app-layer coalescing flusher (see
+// TouchTokensBatch). A nil/empty batch is a no-op.
+func (q *Queries) TouchUserPATsBatch(ctx context.Context, ids []uuid.UUID, ats []time.Time) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	_, err := q.db.Exec(ctx, `
+		UPDATE user_pats AS p SET last_used_at = v.at
+		FROM (SELECT unnest($1::uuid[]) AS id, unnest($2::timestamptz[]) AS at) AS v
+		WHERE p.id = v.id`, ids, ats)
 	return err
 }

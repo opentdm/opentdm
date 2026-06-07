@@ -48,12 +48,27 @@ type Service struct {
 	setupToken string     // one-time first-boot admin token (empty once a user exists)
 
 	cipherCache sync.Map // project ID string -> *crypto.DEKCipher
+
+	// Coalesced last-used writes for tokens/PATs (see touch.go). nowFn is a
+	// per-Service clock so the flusher goroutine never reads the package `now`
+	// global (which tests may mutate) — avoiding a data race under -race.
+	touch     *touchBuffer
+	touchSink touchSink
+	nowFn     func() time.Time
 }
 
 // NewService constructs the service. setupToken is the one-time bootstrap token
 // (printed to logs at first boot); pass "" if a user already exists.
 func NewService(st *store.Store, keys crypto.KeyProvider, pepper []byte, setupToken string) *Service {
-	return &Service{store: st, keys: keys, pepper: pepper, setupToken: setupToken}
+	return &Service{
+		store:      st,
+		keys:       keys,
+		pepper:     pepper,
+		setupToken: setupToken,
+		touch:      newTouchBuffer(),
+		touchSink:  storeTouchSink{st: st},
+		nowFn:      time.Now,
+	}
 }
 
 // cipherFor returns a DEKCipher for a project, unwrapping and caching its DEK.
