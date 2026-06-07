@@ -26,7 +26,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: ["go", "javascript-typescript"]
+        include:
+          - language: go
+            build-mode: manual
+          - language: javascript-typescript
+            build-mode: none
     steps:
       - uses: actions/checkout@v4
 
@@ -38,10 +42,12 @@ jobs:
       - uses: github/codeql-action/init@v3
         with:
           language: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
 
-      # The Go workspace ties three modules together; build them explicitly so
-      # CodeQL traces the whole graph (autobuild doesn't span go.work members).
-      - if: matrix.language == 'go'
+      # Go: build the workspace modules explicitly so CodeQL traces the whole
+      # graph (autobuild doesn't span go.work members). JS/TS uses build-mode
+      # "none" — extracted from source, so it never touches the Go toolchain.
+      - if: matrix.build-mode == 'manual'
         run: go build ./server/... ./cli/... ./apiclient/...
 
       - uses: github/codeql-action/analyze@v3
