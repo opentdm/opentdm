@@ -1,6 +1,6 @@
 module github.com/opentdm/opentdm/server
 
-go 1.25
+go 1.25.0
 
 toolchain go1.25.11
 
@@ -10,6 +10,7 @@ require (
 	github.com/jackc/pgx/v5 v5.7.6
 	github.com/vgarvardt/pgx-google-uuid/v5 v5.6.0
 	golang.org/x/crypto v0.37.0
+	golang.org/x/time v0.15.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 

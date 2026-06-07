@@ -11,6 +11,10 @@ import (
 	"strings"
 )
 
+// maxRateLimit bounds the auth rate-limit knobs — a sanity ceiling that also
+// guarantees the int64→int narrowing in Load can't overflow on 32-bit builds.
+const maxRateLimit = 1_000_000
+
 // Config is the fully-parsed, validated server configuration.
 type Config struct {
 	Bind     string // network interface to bind, e.g. "0.0.0.0"
@@ -29,6 +33,11 @@ type Config struct {
 	MigrateOnStart bool
 	MaxBlobBytes   int64
 	WebDir         string // optional: serve UI from disk instead of embed
+
+	// Per-IP rate limiting for the unauthenticated auth endpoints (login,
+	// bootstrap, invitation accept). RPM <= 0 disables it.
+	AuthRateLimitRPM   int
+	AuthRateLimitBurst int
 
 	// SMTP for invitation emails (optional; when unset, invite links are logged).
 	SMTPHost     string
@@ -70,6 +79,23 @@ func Load() (*Config, error) {
 		return nil, err
 	}
 	c.MaxBlobBytes = maxBlob
+
+	rlRPM, err := envInt64("OPENTDM_AUTH_RATELIMIT_RPM", 10)
+	if err != nil {
+		return nil, err
+	}
+	if rlRPM < 0 || rlRPM > maxRateLimit {
+		return nil, fmt.Errorf("OPENTDM_AUTH_RATELIMIT_RPM: must be between 0 and %d", maxRateLimit)
+	}
+	c.AuthRateLimitRPM = int(rlRPM)
+	rlBurst, err := envInt64("OPENTDM_AUTH_RATELIMIT_BURST", 5)
+	if err != nil {
+		return nil, err
+	}
+	if rlBurst < 0 || rlBurst > maxRateLimit {
+		return nil, fmt.Errorf("OPENTDM_AUTH_RATELIMIT_BURST: must be between 0 and %d", maxRateLimit)
+	}
+	c.AuthRateLimitBurst = int(rlBurst)
 
 	if c.MasterKey, err = decodeKey("OPENTDM_MASTER_KEY", 32, true); err != nil {
 		return nil, err

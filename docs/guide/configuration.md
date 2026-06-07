@@ -24,6 +24,8 @@ copy [`.env.example`](https://github.com/opentdm/opentdm/blob/main/.env.example)
 | `OPENTDM_LOG_FORMAT` | `json` | `json` or `text` |
 | `OPENTDM_MIGRATE_ON_START` | `true` | run embedded migrations on boot (advisory-locked) |
 | `OPENTDM_MAX_BLOB_BYTES` | `10485760` | max file/blob size (bytes) |
+| `OPENTDM_AUTH_RATELIMIT_RPM` | `10` | per-IP requests/min for login, bootstrap & invite-accept; `0` disables |
+| `OPENTDM_AUTH_RATELIMIT_BURST` | `5` | per-IP burst allowance for the auth endpoints |
 | `OPENTDM_WEB_DIR` | — | serve the UI from disk instead of the embedded build (dev) |
 
 ## SMTP (optional — for invitation emails)
