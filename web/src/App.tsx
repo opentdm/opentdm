@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Routes, Route, Navigate, Link as RouterLink, useNavigate } from "react-router-dom";
-import { Box, Header, Spinner, Text } from "@primer/react";
+import { Box, Header, Spinner, Text, sxToStyle } from "./ui/primer";
 import { PackageIcon } from "@primer/octicons-react";
 import { api, User } from "./api";
 import Setup from "./pages/Setup";
@@ -90,7 +90,7 @@ function Shell({ me, onLogout }: { me: User; onLogout: () => void }) {
     <>
       <Header>
         <Header.Item>
-          <Header.Link as={RouterLink} to="/" sx={{ fontSize: 2, display: "flex", alignItems: "center" }}>
+          <Header.Link as={RouterLink} to="/" style={sxToStyle({ fontSize: 2, display: "flex", alignItems: "center" })}>
             <PackageIcon size={24} />
             <Box as="span" sx={{ ml: 2 }}>
               opentdm
@@ -101,22 +101,22 @@ function Shell({ me, onLogout }: { me: User; onLogout: () => void }) {
         <Header.Item>
           {me.is_admin && (
             <>
-              <Header.Link as={RouterLink} to="/activity" sx={{ mr: 3 }}>
+              <Header.Link as={RouterLink} to="/activity" style={sxToStyle({ mr: 3 })}>
                 Activity
               </Header.Link>
-              <Header.Link as={RouterLink} to="/users" sx={{ mr: 3 }}>
+              <Header.Link as={RouterLink} to="/users" style={sxToStyle({ mr: 3 })}>
                 Users
               </Header.Link>
             </>
           )}
-          <Header.Link as={RouterLink} to="/settings" sx={{ mr: 3 }}>
+          <Header.Link as={RouterLink} to="/settings" style={sxToStyle({ mr: 3 })}>
             Tokens
           </Header.Link>
           <Text sx={{ color: "fg.onEmphasis", mr: 3 }}>{me.username}</Text>
           <Header.Link
             as="button"
             onClick={logout}
-            sx={{ background: "transparent", border: 0, p: 0, font: "inherit", cursor: "pointer" }}
+            style={sxToStyle({ background: "transparent", border: 0, p: 0, font: "inherit", cursor: "pointer" })}
           >
             Sign out
           </Header.Link>

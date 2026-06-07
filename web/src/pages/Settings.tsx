@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { Box, Button, Flash, FormControl, Heading, Label, Text, TextInput } from "@primer/react";
+import { Box, Button, Flash, FormControl, Heading, Label, Text, TextInput } from "../ui/primer";
 import { api, PAT } from "../api";
 
 export default function Settings() {

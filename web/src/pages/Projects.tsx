@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
-import { Box, Button, FormControl, Flash, Heading, Link, Text, TextInput } from "@primer/react";
+import { Box, Button, FormControl, Flash, Heading, Link, Text, TextInput, sxToStyle } from "../ui/primer";
 import { api, Project } from "../api";
 
 export default function Projects() {
@@ -78,7 +78,7 @@ export default function Projects() {
             key={p.id}
             sx={{ p: 3, borderBottomWidth: 1, borderBottomStyle: "solid", borderColor: "border.muted" }}
           >
-            <Link as={RouterLink} to={`/projects/${p.slug}`} sx={{ fontWeight: "bold" }}>
+            <Link as={RouterLink} to={`/projects/${p.slug}`} style={sxToStyle({ fontWeight: "bold" })}>
               {p.name}
             </Link>
             <Text sx={{ color: "fg.muted", ml: 2 }}>{p.slug}</Text>

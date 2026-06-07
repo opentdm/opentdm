@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Box, Button, Flash, Label, Spinner, Text } from "@primer/react";
+import { Box, Button, Flash, Label, Spinner, Text } from "../ui/primer";
 import { AuditEntry, auditLabel } from "../api";
 
 function relativeTime(iso: string): string {
