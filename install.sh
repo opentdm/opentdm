@@ -36,9 +36,28 @@ tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 echo "Downloading $url" >&2
 curl -fsSL "$url" -o "$tmp/opentdm.tar.gz"
-# Verify checksum when available.
+# Verify checksum when available — abort on a real mismatch; warn only if no tool/entry exists.
+# We compare hash strings directly (the download is saved as opentdm.tar.gz, not its asset name,
+# so `sha256sum -c` against checksums.txt would never find the file).
 if curl -fsSL "https://github.com/${REPO}/releases/download/${VERSION}/checksums.txt" -o "$tmp/checksums.txt" 2>/dev/null; then
-  (cd "$tmp" && grep " ${asset}\$" checksums.txt | sha256sum -c - >/dev/null 2>&1) || echo "warning: checksum not verified" >&2
+  expected="$(grep " ${asset}\$" "$tmp/checksums.txt" | awk '{print $1}' || true)"
+  if command -v sha256sum >/dev/null 2>&1; then
+    actual="$(sha256sum "$tmp/opentdm.tar.gz" | awk '{print $1}')"
+  elif command -v shasum >/dev/null 2>&1; then
+    actual="$(shasum -a 256 "$tmp/opentdm.tar.gz" | awk '{print $1}')"   # macOS/BSD ship shasum, not sha256sum
+  else
+    actual=""
+  fi
+  if [ -z "$actual" ]; then
+    echo "warning: no sha256 tool (sha256sum/shasum) found; checksum not verified" >&2
+  elif [ -z "$expected" ]; then
+    echo "warning: no checksum entry for ${asset}; not verified" >&2
+  elif [ "$expected" = "$actual" ]; then
+    echo "Checksum OK for ${asset}" >&2
+  else
+    echo "error: checksum verification FAILED for ${asset} (expected ${expected}, got ${actual})" >&2
+    exit 1
+  fi
 fi
 tar -xzf "$tmp/opentdm.tar.gz" -C "$tmp"
 
