@@ -3,6 +3,7 @@ import { Link as RouterLink, useNavigate, useParams } from "react-router-dom";
 import {
   Box,
   Button,
+  Checkbox,
   Flash,
   FormControl,
   Heading,
@@ -204,6 +205,9 @@ function ObjectsSection({
 function ResolvedSection({ slug, envs }: { slug: string; envs: Environment[] }) {
   const defaultEnv = envs.find((e) => e.is_default)?.slug ?? envs[0]?.slug ?? "";
   const [env, setEnv] = useState(defaultEnv);
+  const [format, setFormat] = useState("dotenv");
+  // Secrets are hidden by default so the preview is safe to screen-share.
+  const [showSecrets, setShowSecrets] = useState(false);
   const [out, setOut] = useState("");
   const [collisions, setCollisions] = useState<Collision[]>([]);
   const [err, setErr] = useState("");
@@ -217,7 +221,7 @@ function ResolvedSection({ slug, envs }: { slug: string; envs: Environment[] }) 
     setErr("");
     try {
       const [text, meta] = await Promise.all([
-        api.resolveText(slug, env, "dotenv"),
+        api.resolveText(slug, env, format, showSecrets),
         api.resolveMeta(slug, env),
       ]);
       setOut(text);
@@ -240,6 +244,20 @@ function ResolvedSection({ slug, envs }: { slug: string; envs: Environment[] }) 
               </Select.Option>
             ))}
           </Select>
+        </FormControl>
+        <FormControl>
+          <FormControl.Label>Format</FormControl.Label>
+          <Select value={format} onChange={(e) => setFormat(e.target.value)}>
+            {["dotenv", "json", "shell", "yaml", "properties"].map((f) => (
+              <Select.Option key={f} value={f}>
+                {f}
+              </Select.Option>
+            ))}
+          </Select>
+        </FormControl>
+        <FormControl>
+          <Checkbox checked={showSecrets} onChange={(e) => setShowSecrets(e.target.checked)} />
+          <FormControl.Label>Show secrets</FormControl.Label>
         </FormControl>
         <Button onClick={load}>Resolve</Button>
       </Box>

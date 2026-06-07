@@ -99,6 +99,16 @@ function TokensSection({ slug }: { slug: string }) {
     }
   }
 
+  async function revoke(id: string) {
+    setErr("");
+    try {
+      await api.del(`/projects/${slug}/tokens/${id}`);
+      await load();
+    } catch (e: any) {
+      setErr(e.message);
+    }
+  }
+
   return (
     <Box>
       <Heading sx={{ fontSize: 3, mb: 2 }}>Service tokens</Heading>
@@ -142,11 +152,18 @@ function TokensSection({ slug }: { slug: string }) {
         {tokens.map((t) => (
           <Box
             key={t.id}
-            sx={{ p: 3, borderBottomWidth: 1, borderBottomStyle: "solid", borderColor: "border.muted", display: "flex", gap: 2 }}
+            sx={{ p: 3, borderBottomWidth: 1, borderBottomStyle: "solid", borderColor: "border.muted", display: "flex", gap: 2, alignItems: "center" }}
           >
             <Text sx={{ fontWeight: "bold" }}>{t.name}</Text>
             <Text sx={{ fontFamily: "mono", color: "fg.muted" }}>{t.prefix}…</Text>
             <Label>{t.scope}</Label>
+            {t.revoked_at ? <Label variant="danger">revoked</Label> : <Label variant="success">active</Label>}
+            <Box sx={{ flex: 1 }} />
+            {!t.revoked_at && (
+              <Button variant="danger" size="small" onClick={() => revoke(t.id)}>
+                Revoke
+              </Button>
+            )}
           </Box>
         ))}
       </Box>
