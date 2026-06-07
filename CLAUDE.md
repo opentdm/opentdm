@@ -104,7 +104,12 @@ it single-quote/escape-quotes values and validates every key with `ValidKey` (re
 
 ## Conventions & gotchas
 - **`server/internal/webui/dist` is committed** (the embedded build) so `go build`/`go test` work
-  without Node. After UI changes, `cd web && npm run build` (stable filenames, no content hashes).
+  without Node. After UI changes, `cd web && npm run build` (stable filenames, no content hashes); CI fails
+  if the committed embed is stale. Build the embed with Node 22 (`web/.nvmrc`) to match CI.
+- **Web/Primer:** components import Primer from the `web/src/ui/primer` shim (Primer 38 dropped `sx`/`Box`;
+  the shim restores them), **never** from `@primer/react` directly. `sx` must stay static (no responsive
+  arrays / pseudo-selectors — the shim maps it to inline `style`). `vite build` skips types — run
+  `cd web && npm run typecheck` (also enforced in CI).
 - Repo follows the user's global Go rules: `gofmt`/`goimports` mandatory, small interfaces, wrap errors
   with `fmt.Errorf("...: %w", err)`, table-driven tests, always `-race`.
 - Conventional Commits. Do not commit `.env` (gitignored; holds the master key).
