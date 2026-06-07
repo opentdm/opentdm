@@ -55,7 +55,9 @@ jobs:
       - name: go vet
         run: go vet ./server/... ./cli/... ./apiclient/...
       - name: go test (race + cover)
-        run: go test -race -cover ./server/... ./cli/... ./apiclient/...
+        # -p 1 serializes package test binaries: the store and httpapi e2e tests
+        # share one Postgres and TRUNCATE it, so they must not run concurrently.
+        run: go test -race -cover -p 1 ./server/... ./cli/... ./apiclient/...
 
   docker:
     name: Docker image builds
