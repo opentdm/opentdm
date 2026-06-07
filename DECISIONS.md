@@ -7,8 +7,8 @@
 ## Locked product decisions
 1. **Security model:** server-side **envelope encryption** at rest. The server *can* read plaintext
    (needed for edit/search/validate/diff/format-conversion). **Not zero-knowledge.**
-2. **Stack:** Go (Chi + sqlc + golang-migrate + pgx) backend, React + Vite + @primer/react frontend,
-   Go CLI (Cobra + GoReleaser), PostgreSQL 16. Monorepo with `go.work`.
+2. **Stack:** Go (Chi + golang-migrate + pgx, hand-written queries — see §Storage) backend, React + Vite
+   + @primer/react frontend, Go CLI (stdlib `flag` + GoReleaser), PostgreSQL 16. Monorepo with `go.work`.
 3. **Tenancy:** solo/minimal for v1 (Users, Projects, Environments, Configs, API tokens). Nullable
    `org_id` seams left for future teams/RBAC.
 4. **Consumption:** REST API + scoped tokens (core), CLI `pull`/`run`, GitHub Action, SDKs.
@@ -34,9 +34,10 @@
 ## Encryption (reconciled + hardened)
 - master key (KEK, `OPENTDM_MASTER_KEY`, base64 32B) → per-project DEK (wrapped on `projects`) →
   per-value/blob ciphertext. KMS providers are interface stubs in v1.
-- Versioned wire format `[1B version][nonce][ciphertext][tag]`. v1 = AES-256-GCM with a mandatory
-  per-DEK nonce budget forcing DEK rotation below 2^32; v2 = XChaCha20-Poly1305 (24B nonce) available
-  behind the version byte as the recommended default.
+- Versioned wire format `[1B version][nonce][ciphertext][tag]`. v1 default = AES-256-GCM with random
+  96-bit nonces; a per-DEK nonce/seal budget to force DEK rotation below 2^32 is **planned, not yet
+  enforced** (see the roadmap). XChaCha20-Poly1305 (24B nonce) is implemented and selectable behind the
+  version byte, slated to become the recommended default.
 - **AAD binds immutable identity only**: `project_id ‖ env_id|"base" ‖ config_id ‖ key`. Never put
   `dek_version` in AAD. Bind `master_key_id` into the wrap AAD (blocks KEK downgrade).
 - **Keyed** plaintext-equality hash: `HMAC(HKDF(DEK,"hmac-v1"), plaintext)` — never raw sha256.
@@ -45,8 +46,10 @@
 
 ## Tokens
 - `otdm_<base62(32B)>`, shown once, stored as HMAC hash + display prefix.
-- Scope = one project + ≥1 explicit environments + read|write via `api_token_environments`.
-  **Default-deny**: empty/NULL env set is never a wildcard. No cross-project / tag-scoped tokens in v1.
+- Scope = one project + ≥1 explicit environments (via `api_token_environments`). The token `scope`
+  column allows `read|write`, but v1 ships **read-only** service tokens (write is a reserved seam; the
+  CLI's write commands use a user PAT). **Default-deny**: empty/NULL env set is never a wildcard. No
+  cross-project / tag-scoped tokens in v1.
 - `last_used_at` updated via a coalescing map flushed by a ticker (never per-request writes).
 
 ## Authorization (per-project roles + membership)
