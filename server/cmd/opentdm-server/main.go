@@ -101,6 +101,8 @@ func runServe() int {
 	}
 
 	svc := app.NewService(st, keys, cfg.TokenPepper, setupToken)
+	// Coalesce token/PAT last-used writes: buffer in memory, flush on an interval.
+	svc.StartTouchFlusher(ctx, cfg.TokenTouchInterval)
 	secureCookies := strings.HasPrefix(cfg.Host, "https")
 
 	// Web UI: from disk when OPENTDM_WEB_DIR is set, otherwise the embedded build.
@@ -120,6 +122,11 @@ func runServe() int {
 	if err := srv.Run(ctx); err != nil {
 		logger.Error("server_error", "err", err)
 		return 1
+	}
+	// Final flush of buffered last-used timestamps before the deferred st.Close().
+	// Uses a fresh context because ctx is already cancelled by shutdown.
+	if err := svc.FlushTouches(context.Background()); err != nil {
+		logger.Warn("token_touch_final_flush", "err", err)
 	}
 	return 0
 }
