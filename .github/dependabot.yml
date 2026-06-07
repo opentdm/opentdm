@@ -1,0 +1,37 @@
+version: 2
+updates:
+  # Go modules — one go.mod per workspace member (server/, apiclient/, cli/).
+  - package-ecosystem: gomod
+    directories:
+      - /server
+      - /apiclient
+      - /cli
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      go-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  # npm projects — the embedded SPA and the docs site.
+  - package-ecosystem: npm
+    directories:
+      - /web
+      - /docs
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      npm-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  # GitHub Actions used across all workflows.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
