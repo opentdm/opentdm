@@ -91,8 +91,9 @@ func (s *Service) AuthenticateToken(ctx context.Context, raw string) (model.Toke
 	if t.ExpiresAt != nil && t.ExpiresAt.Before(now()) {
 		return model.Token{}, ErrUnauthorized
 	}
-	// Best-effort last-used update (non-blocking semantics acceptable at v1 scale).
-	_ = s.store.Q().TouchToken(ctx, t.ID, now())
+	// Last-used is coalesced in memory and flushed on an interval (see touch.go),
+	// so the hot /resolve path never issues a per-request UPDATE.
+	s.recordTokenUse(t.ID)
 	return t, nil
 }
 
