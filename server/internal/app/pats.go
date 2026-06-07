@@ -60,7 +60,7 @@ func (s *Service) AuthenticatePAT(ctx context.Context, raw string) (model.User, 
 		}
 		return model.User{}, err
 	}
-	_ = s.store.Q().TouchUserPAT(ctx, patID, now())
+	s.recordPATUse(patID) // coalesced; flushed on an interval (see touch.go)
 	return user, nil
 }
 
