@@ -30,6 +30,11 @@ type Options struct {
 	Mailer        email.Mailer // nil → no-op (invite links are logged)
 	BaseURL       string       // absolute base for invite links; "" derives from request
 	WebHandler    http.Handler // optional SPA handler for non-/api routes
+
+	// Per-IP rate limiting for unauthenticated auth endpoints (login, bootstrap,
+	// invitation accept). RPM <= 0 disables it.
+	AuthRateLimitRPM   int
+	AuthRateLimitBurst int
 }
 
 // NewRouter builds the top-level HTTP handler.
@@ -78,12 +83,19 @@ func NewRouter(opts Options) http.Handler {
 
 			// Public / dual-auth endpoints.
 			api.Get("/auth/setup", h.handleSetupStatus)
-			api.Post("/auth/bootstrap", h.handleBootstrap)
-			// Public invitation accept (token-authorized).
 			api.Get("/invitations/{token}", h.handleGetInvitation)
-			api.Post("/invitations/{token}/accept", h.handleAcceptInvitation)
-			api.Post("/auth/login", h.handleLogin)
 			api.Post("/auth/logout", h.handleLogout)
+
+			// Credential-bearing public endpoints: rate-limited per IP to blunt
+			// credential stuffing and setup/invite-token guessing.
+			limiter := newIPRateLimiter(opts.AuthRateLimitRPM, opts.AuthRateLimitBurst)
+			limiter.startCleanup(context.Background(), 5*time.Minute, 15*time.Minute)
+			api.Group(func(pub chi.Router) {
+				pub.Use(limiter.Middleware)
+				pub.Post("/auth/bootstrap", h.handleBootstrap)
+				pub.Post("/invitations/{token}/accept", h.handleAcceptInvitation)
+				pub.Post("/auth/login", h.handleLogin)
+			})
 			// Consumption: session OR scoped service token (checked in handler).
 			api.Get("/projects/{project}/resolve", h.handleResolve)
 
