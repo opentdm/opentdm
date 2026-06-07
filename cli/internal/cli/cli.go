@@ -3,6 +3,7 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -15,8 +16,9 @@ const usage = `opentdm — manage project/environment config and pull it into CI
 
 Usage:
   opentdm login --host URL --token TOKEN [--project SLUG]
-  opentdm pull  --env ENV [--project SLUG] [--format dotenv|json|shell|yaml|properties] [-o FILE]
+  opentdm pull  --env ENV [--project SLUG] [--format dotenv|json|shell|yaml|properties] [-o FILE] [--collisions]
   opentdm run   --env ENV [--project SLUG] -- <command> [args...]
+  opentdm list  [--project SLUG] [--json]                                (needs a user PAT)
   opentdm configs set --env ENV [--secret] CONFIG KEY=VAL [KEY=VAL...]   (needs a user PAT)
   opentdm push-file   --env ENV --file PATH CONFIG                       (needs a user PAT)
   opentdm version
@@ -38,6 +40,8 @@ func Main(version string, args []string) int {
 		return cmdPull(args[1:])
 	case "run":
 		return cmdRun(args[1:])
+	case "list":
+		return cmdList(args[1:])
 	case "configs":
 		return cmdConfigs(args[1:])
 	case "push-file":
@@ -161,6 +165,49 @@ func cmdRun(args []string) int {
 		fmt.Fprintf(os.Stderr, "warning: %d cross-config key collision(s) in %s/%s\n", collisions, cfg.Project, *env)
 	}
 	return runProcess(cmdArgs, mergeEnv(os.Environ(), vars))
+}
+
+func cmdList(args []string) int {
+	fs := flag.NewFlagSet("list", flag.ContinueOnError)
+	host := fs.String("host", "", "server base URL")
+	token := fs.String("token", "", "user PAT (otdmu_...)")
+	project := fs.String("project", "", "project slug")
+	asJSON := fs.Bool("json", false, "output as JSON")
+	if err := fs.Parse(args); err != nil {
+		return 2
+	}
+	cfg := effective(*host, *token, *project)
+	if cfg.Host == "" || cfg.Token == "" {
+		fmt.Fprintln(os.Stderr, "not logged in: set --host/--token, OPENTDM_HOST/OPENTDM_TOKEN, or run 'opentdm login'")
+		return 2
+	}
+	if cfg.Project == "" {
+		fmt.Fprintln(os.Stderr, "missing project: pass --project or set a default with 'opentdm login --project'")
+		return 2
+	}
+	client := apiclient.New(cfg.Host, cfg.Token)
+	configs, err := client.ListConfigs(context.Background(), cfg.Project)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
+	if *asJSON {
+		b, err := json.MarshalIndent(configs, "", "  ")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return 1
+		}
+		fmt.Println(string(b))
+		return 0
+	}
+	if len(configs) == 0 {
+		fmt.Fprintf(os.Stderr, "no objects in project %q\n", cfg.Project)
+		return 0
+	}
+	for _, c := range configs {
+		fmt.Printf("%s\t%s/%s\n", c.Name, c.Kind, c.Format)
+	}
+	return 0
 }
 
 func requireResolveArgs(cfg Config, env string) int {
