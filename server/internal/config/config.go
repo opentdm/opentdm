@@ -30,6 +30,11 @@ type Config struct {
 	MaxBlobBytes   int64
 	WebDir         string // optional: serve UI from disk instead of embed
 
+	// Per-IP rate limiting for the unauthenticated auth endpoints (login,
+	// bootstrap, invitation accept). RPM <= 0 disables it.
+	AuthRateLimitRPM   int
+	AuthRateLimitBurst int
+
 	// SMTP for invitation emails (optional; when unset, invite links are logged).
 	SMTPHost     string
 	SMTPPort     int
@@ -70,6 +75,17 @@ func Load() (*Config, error) {
 		return nil, err
 	}
 	c.MaxBlobBytes = maxBlob
+
+	rlRPM, err := envInt64("OPENTDM_AUTH_RATELIMIT_RPM", 10)
+	if err != nil {
+		return nil, err
+	}
+	c.AuthRateLimitRPM = int(rlRPM)
+	rlBurst, err := envInt64("OPENTDM_AUTH_RATELIMIT_BURST", 5)
+	if err != nil {
+		return nil, err
+	}
+	c.AuthRateLimitBurst = int(rlBurst)
 
 	if c.MasterKey, err = decodeKey("OPENTDM_MASTER_KEY", 32, true); err != nil {
 		return nil, err

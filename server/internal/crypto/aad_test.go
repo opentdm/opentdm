@@ -2,6 +2,35 @@ package crypto
 
 import "testing"
 
+// ItemAAD is computed identically at write (Seal) and read (Open) time from
+// (project, env|"base", config, key). These tests pin the base-vs-env boundary:
+// a value sealed at the base layer must never open as an environment override
+// (or vice-versa), which is the crypto-layer half of the NULL-base invariant.
+func TestItemAAD_BaseDistinctFromEnv(t *testing.T) {
+	env := "11111111-1111-1111-1111-111111111111"
+	if string(ItemAAD("p", "", "c", "K")) == string(ItemAAD("p", env, "c", "K")) {
+		t.Fatal("base-layer AAD must differ from an environment AAD for the same key")
+	}
+}
+
+func TestItemAAD_BaseVsEnvFailsClosed(t *testing.T) {
+	c, _ := NewDEKCipher(mustDEK(t), AlgAESGCM)
+	env := "11111111-1111-1111-1111-111111111111"
+
+	base, _ := c.Seal([]byte("v"), ItemAAD("p", "", "c", "K"))
+	if _, err := c.Open(base, ItemAAD("p", env, "c", "K")); err == nil {
+		t.Fatal("a base-sealed value must not open with an environment AAD")
+	}
+	override, _ := c.Seal([]byte("v"), ItemAAD("p", env, "c", "K"))
+	if _, err := c.Open(override, ItemAAD("p", "", "c", "K")); err == nil {
+		t.Fatal("an env-sealed value must not open with the base AAD")
+	}
+	// Same identity still round-trips (write/read parity).
+	if _, err := c.Open(base, ItemAAD("p", "", "c", "K")); err != nil {
+		t.Fatalf("base round-trip with identical AAD: %v", err)
+	}
+}
+
 func TestVersionAAD_RoundTrip(t *testing.T) {
 	c, _ := NewDEKCipher(mustDEK(t), AlgAESGCM)
 	aad := VersionAAD("proj", "staging", "cfg", "variable")
