@@ -44,6 +44,9 @@ func (h *Handlers) handleAddMember(w http.ResponseWriter, r *http.Request) {
 		h.writeErr(w, r, err)
 		return
 	}
+	if info := auditInfoFrom(r.Context()); info != nil {
+		info.TargetID = m.UserID.String()
+	}
 	WriteJSON(w, http.StatusCreated, toMemberDTO(m), nil)
 }
 

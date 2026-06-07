@@ -11,6 +11,7 @@ import ObjectPage from "./pages/ObjectPage";
 import ProjectSettings from "./pages/ProjectSettings";
 import Settings from "./pages/Settings";
 import Users from "./pages/Users";
+import Activity from "./pages/Activity";
 import AcceptInvite from "./pages/AcceptInvite";
 
 export default function App() {
@@ -99,9 +100,14 @@ function Shell({ me, onLogout }: { me: User; onLogout: () => void }) {
         <Header.Item full />
         <Header.Item>
           {me.is_admin && (
-            <Header.Link as={RouterLink} to="/users" sx={{ mr: 3 }}>
-              Users
-            </Header.Link>
+            <>
+              <Header.Link as={RouterLink} to="/activity" sx={{ mr: 3 }}>
+                Activity
+              </Header.Link>
+              <Header.Link as={RouterLink} to="/users" sx={{ mr: 3 }}>
+                Users
+              </Header.Link>
+            </>
           )}
           <Header.Link as={RouterLink} to="/settings" sx={{ mr: 3 }}>
             Tokens
@@ -122,8 +128,10 @@ function Shell({ me, onLogout }: { me: User; onLogout: () => void }) {
           <Route path="/projects/:slug" element={<ProjectPage />} />
           <Route path="/projects/:slug/configs/:configId" element={<ObjectPage />} />
           <Route path="/projects/:slug/settings" element={<ProjectSettings />} />
+          <Route path="/projects/:slug/activity" element={<Activity />} />
           <Route path="/settings" element={<Settings />} />
           {me.is_admin && <Route path="/users" element={<Users />} />}
+          {me.is_admin && <Route path="/activity" element={<Activity />} />}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Box>

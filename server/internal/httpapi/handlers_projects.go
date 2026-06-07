@@ -38,7 +38,12 @@ func (h *Handlers) handleCreateProject(w http.ResponseWriter, r *http.Request) {
 		h.writeErr(w, r, err)
 		return
 	}
-	WriteJSON(w, http.StatusCreated, toProjectDTO(p), nil)
+	if info := auditInfoFrom(r.Context()); info != nil {
+		id := p.ID
+		info.ProjectID = &id
+		info.TargetID = p.ID.String()
+	}
+	WriteJSON(w, http.StatusCreated, toProjectDTOWithRole(p, roleOwner), nil)
 }
 
 func (h *Handlers) handleGetProject(w http.ResponseWriter, r *http.Request) {
@@ -114,6 +119,9 @@ func (h *Handlers) handleCreateEnvironment(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		h.writeErr(w, r, err)
 		return
+	}
+	if info := auditInfoFrom(r.Context()); info != nil {
+		info.TargetID = env.ID.String()
 	}
 	WriteJSON(w, http.StatusCreated, toEnvironmentDTO(env), nil)
 }

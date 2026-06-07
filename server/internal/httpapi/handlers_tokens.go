@@ -57,6 +57,9 @@ func (h *Handlers) handleCreateToken(w http.ResponseWriter, r *http.Request) {
 		h.writeErr(w, r, err)
 		return
 	}
+	if info := auditInfoFrom(r.Context()); info != nil {
+		info.TargetID = token.ID.String()
+	}
 	resp := struct {
 		Token string `json:"token"`
 		tokenDTO
