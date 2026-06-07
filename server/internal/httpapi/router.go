@@ -47,6 +47,7 @@ func NewRouter(opts Options) http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
+	r.Use(securityHeaders(opts.SecureCookies))
 	r.Use(requestLogger(logger))
 	r.Use(middleware.Recoverer)
 
