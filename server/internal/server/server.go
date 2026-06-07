@@ -42,6 +42,9 @@ func New(cfg *config.Config, logger *slog.Logger, svc *app.Service, secureCookie
 		Mailer:        mailer,
 		BaseURL:       cfg.Host,
 		WebHandler:    web,
+
+		AuthRateLimitRPM:   cfg.AuthRateLimitRPM,
+		AuthRateLimitBurst: cfg.AuthRateLimitBurst,
 	})
 	return &Server{
 		httpSrv: &http.Server{

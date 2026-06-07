@@ -2,7 +2,10 @@
 
 opentdm is a Go multi-module workspace (`server/`, `apiclient/`, `cli/`) plus a React / `@primer/react` SPA
 (`web/`) embedded into the server binary via `go:embed`. The only datastore is **PostgreSQL** — sessions are
-DB-backed and rate limiting is in-process (no Redis in v1).
+DB-backed, and the unauthenticated auth endpoints (login, bootstrap, invitation-accept) are rate-limited
+**per client IP, in-process** (token bucket, no Redis in v1; tunable via `OPENTDM_AUTH_RATELIMIT_RPM` /
+`OPENTDM_AUTH_RATELIMIT_BURST`, set RPM to `0` to disable). Across multiple replicas the limit is
+per-replica — front it with a shared limiter for a strict global cap.
 
 ## Data model
 
