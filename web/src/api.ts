@@ -52,6 +52,43 @@ export interface InvitationResult {
 // Role helpers (UX gating only — the server is the enforcement authority).
 export const canWrite = (role?: string): boolean => role === "editor" || role === "owner";
 export const canManage = (role?: string): boolean => role === "owner";
+
+export interface AuditEntry {
+  id: string;
+  project_id?: string | null;
+  actor: string;
+  action: string;
+  target_type?: string;
+  target_id?: string;
+  status: number;
+  created_at: string;
+}
+
+// Friendly labels for audit action codes (falls back to the raw code).
+const AUDIT_LABELS: Record<string, string> = {
+  "project.created": "created the project",
+  "config.created": "created an object",
+  "config.updated": "edited an object",
+  "config.archived": "deleted an object",
+  "config.items.updated": "updated variables",
+  "config.file.updated": "updated a file",
+  "config.rolled_back": "rolled back an object",
+  "config.cloned": "cloned an object",
+  "environment.created": "created an environment",
+  "environment.updated": "renamed an environment",
+  "environment.deleted": "deleted an environment",
+  "environment.reordered": "reordered environments",
+  "environment.cloned": "cloned an environment",
+  "member.added": "added a member",
+  "member.updated": "changed a member's role",
+  "member.removed": "removed a member",
+  "invitation.created": "invited someone",
+  "invitation.revoked": "revoked an invitation",
+  "token.created": "created a service token",
+  "token.revoked": "revoked a service token",
+  "user.updated": "updated a user",
+};
+export const auditLabel = (action: string): string => AUDIT_LABELS[action] ?? action;
 export interface Environment {
   id: string;
   slug: string;
@@ -132,6 +169,24 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   return (json.data ?? json) as T;
 }
 
+// auditPage is a GET that also surfaces the meta cursor (request() drops meta).
+async function auditPage(path: string): Promise<{ entries: AuditEntry[]; next?: string }> {
+  const resp = await fetch("/api/v1" + path, { credentials: "include" });
+  const text = await resp.text();
+  if (!resp.ok) {
+    let msg = resp.statusText;
+    try {
+      const j = JSON.parse(text);
+      msg = j.detail || j.title || msg;
+    } catch {
+      /* non-JSON */
+    }
+    throw new APIError(resp.status, msg);
+  }
+  const json = text ? JSON.parse(text) : {};
+  return { entries: (json.data ?? []) as AuditEntry[], next: json.meta?.next };
+}
+
 export interface VersionMeta {
   version: number;
   is_current: boolean;
@@ -199,6 +254,12 @@ export const api = {
   getInvitation: (token: string) => request<InvitationInfo>("GET", `/invitations/${encodeURIComponent(token)}`),
   acceptInvitation: (token: string, body: { username: string; password: string }) =>
     request<User>("POST", `/invitations/${encodeURIComponent(token)}/accept`, body),
+
+  // --- audit / activity (keyset-paginated; returns entries + next cursor) ---
+  listProjectAudit: (slug: string, before?: string) =>
+    auditPage(`/projects/${slug}/audit?limit=50${before ? `&before=${encodeURIComponent(before)}` : ""}`),
+  listAudit: (before?: string) =>
+    auditPage(`/audit?limit=50${before ? `&before=${encodeURIComponent(before)}` : ""}`),
 
   // --- admin user directory ---
   listUsers: () => request<AdminUser[]>("GET", `/users`),
