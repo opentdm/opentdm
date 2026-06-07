@@ -14,7 +14,7 @@ import {
   Token,
 } from "@primer/react";
 import { FileIcon, GearIcon, KeyIcon, PulseIcon } from "@primer/octicons-react";
-import { api, canWrite, Config, Environment, Project } from "../api";
+import { api, canWrite, Collision, Config, Environment, Project } from "../api";
 
 const fileFormats = ["json", "csv", "xml"];
 
@@ -205,6 +205,7 @@ function ResolvedSection({ slug, envs }: { slug: string; envs: Environment[] }) 
   const defaultEnv = envs.find((e) => e.is_default)?.slug ?? envs[0]?.slug ?? "";
   const [env, setEnv] = useState(defaultEnv);
   const [out, setOut] = useState("");
+  const [collisions, setCollisions] = useState<Collision[]>([]);
   const [err, setErr] = useState("");
 
   // Keep the selector pinned to the default env until the user changes it.
@@ -215,7 +216,12 @@ function ResolvedSection({ slug, envs }: { slug: string; envs: Environment[] }) 
   async function load() {
     setErr("");
     try {
-      setOut(await api.resolveText(slug, env, "dotenv"));
+      const [text, meta] = await Promise.all([
+        api.resolveText(slug, env, "dotenv"),
+        api.resolveMeta(slug, env),
+      ]);
+      setOut(text);
+      setCollisions(meta.collisions);
     } catch (e: any) {
       setErr(e.message);
     }
@@ -240,6 +246,21 @@ function ResolvedSection({ slug, envs }: { slug: string; envs: Environment[] }) 
       {err && (
         <Flash variant="danger" sx={{ mb: 2 }}>
           {err}
+        </Flash>
+      )}
+      {collisions.length > 0 && (
+        <Flash variant="warning" sx={{ mb: 2 }}>
+          <Box sx={{ fontWeight: "bold", mb: 1 }}>
+            {collisions.length} cross-config key collision{collisions.length > 1 ? "s" : ""}
+          </Box>
+          <Box as="ul" sx={{ pl: 3, m: 0 }}>
+            {collisions.map((c) => (
+              <Box as="li" key={c.key}>
+                <Box as="code">{c.key}</Box> — kept <Box as="code">{c.winning_config}</Box>, shadowed{" "}
+                <Box as="code">{c.losing_config}</Box>
+              </Box>
+            ))}
+          </Box>
         </Flash>
       )}
       {out && (
