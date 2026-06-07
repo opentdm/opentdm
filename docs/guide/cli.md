@@ -16,7 +16,7 @@ The script downloads the matching binary (and verifies its checksum) from GitHub
 
 ```
 opentdm login --host URL --token TOKEN [--project SLUG]
-opentdm pull  --env ENV [--project SLUG] [--format dotenv|json|shell|yaml|properties] [-o FILE]
+opentdm pull  --env ENV [--project SLUG] [--format dotenv|json|shell|yaml|properties] [-o FILE] [--collisions]
 opentdm run   --env ENV [--project SLUG] -- <command> [args...]
 opentdm configs set --env ENV [--secret] CONFIG KEY=VAL [KEY=VAL...]   # needs a user PAT
 opentdm push-file   --env ENV --file PATH CONFIG                        # needs a user PAT
@@ -24,7 +24,9 @@ opentdm version
 ```
 
 - **`login`** stores credentials in `~/.opentdm/config.json`.
-- **`pull`** prints (or writes with `-o`) the resolved environment in the chosen format.
+- **`pull`** prints (or writes with `-o`) the resolved environment in the chosen format. If any keys collide
+  across configs, a warning is printed to **stderr** (so it never corrupts piped output); add `--collisions`
+  to list which config shadowed which.
 - **`run`** resolves the environment and injects it as environment variables for the child command.
 - **`configs set` / `push-file`** write variables / file content — these require a **user PAT** (`otdmu_…`);
   read-only service tokens (`otdm_…`) cannot write.

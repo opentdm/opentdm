@@ -36,6 +36,11 @@ of a project receive **404**; members lacking the required role receive **403**.
 |---|---|---|
 | GET | `/projects/{project}/resolve?env=&format=` | merged config; session **or** service token. `format`: `dotenv` \| `json` \| `shell` \| `yaml` \| `properties` |
 
+The response also carries an `X-OpenTDM-Collisions` header with the count of cross-config key collisions.
+Add `&meta=true` to get the canonical JSON envelope instead of the raw rendered body — `data` is the merged
+key/value object and `meta.collisions` lists each collision (`{key, winning_config, losing_config}`). In meta
+mode `format` is ignored.
+
 ## Projects, environments, configs
 
 | Method | Path | Min role |
