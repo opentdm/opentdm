@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { Box, Button, Flash, FormControl, Heading, IconButton, Label, Select, Text, TextInput } from "@primer/react";
+import { Box, Button, Flash, FormControl, Heading, IconButton, Label, Select, Text, TextInput } from "../ui/primer";
 import { TrashIcon } from "@primer/octicons-react";
 import { api, canManage, Invitation, Member } from "../api";
 

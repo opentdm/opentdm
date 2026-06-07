@@ -13,7 +13,7 @@ import {
   Text,
   TextInput,
   Token,
-} from "@primer/react";
+} from "../ui/primer";
 import { FileIcon, GearIcon, KeyIcon, PulseIcon } from "@primer/octicons-react";
 import { api, canWrite, Collision, Config, Environment, Project } from "../api";
 
@@ -173,6 +173,7 @@ function ObjectsSection({
             key={c.id}
             as={RouterLink}
             to={`/projects/${slug}/configs/${c.id}`}
+            className="otdm-hover-row"
             sx={{
               p: 3,
               display: "flex",
@@ -184,7 +185,6 @@ function ObjectsSection({
               borderBottomWidth: i < configs.length - 1 ? 1 : 0,
               borderBottomStyle: "solid",
               borderColor: "border.muted",
-              ":hover": { bg: "canvas.subtle" },
             }}
           >
             <Box sx={{ color: "fg.muted", display: "flex" }}>

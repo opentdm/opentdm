@@ -1,5 +1,5 @@
 import { FormEvent, useState } from "react";
-import { Box, Button, FormControl, Flash, Heading, TextInput } from "@primer/react";
+import { Box, Button, FormControl, Flash, Heading, TextInput } from "../ui/primer";
 import { api } from "../api";
 
 export default function Login({ onDone }: { onDone: () => void }) {

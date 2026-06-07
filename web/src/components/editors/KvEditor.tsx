@@ -1,5 +1,5 @@
 import { ChangeEvent, useEffect, useRef, useState } from "react";
-import { Box, Button, Flash, IconButton, Spinner, Text, TextInput, Textarea } from "@primer/react";
+import { Box, Button, Flash, IconButton, Spinner, Text, TextInput, Textarea } from "../../ui/primer";
 import { EyeClosedIcon, EyeIcon, LockIcon, TrashIcon } from "@primer/octicons-react";
 import { api, Config, Item } from "../../api";
 

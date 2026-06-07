@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Box, Button, Flash, Label, Text } from "@primer/react";
+import { Box, Button, Flash, Label, Text } from "../ui/primer";
 import { api, Config, DiffResult, VersionMeta } from "../api";
 
 interface VersionHistoryProps {

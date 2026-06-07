@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Box, Button, Flash, Heading, Label, Spinner, Text } from "@primer/react";
+import { Box, Button, Flash, Heading, Label, Spinner, Text } from "../ui/primer";
 import { AdminUser, api } from "../api";
 
 export default function Users() {

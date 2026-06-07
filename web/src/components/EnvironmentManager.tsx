@@ -10,7 +10,7 @@ import {
   Label,
   Text,
   TextInput,
-} from "@primer/react";
+} from "../ui/primer";
 import { ChevronDownIcon, ChevronUpIcon, PencilIcon, TrashIcon } from "@primer/octicons-react";
 import { api, Environment } from "../api";
 
