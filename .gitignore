@@ -19,6 +19,10 @@ node_modules/
 # NOTE: server/internal/webui/dist IS committed — it is embedded into the Go
 # binary via go:embed, so `go build`/`go test` work without a node toolchain.
 
+# VitePress docs site (built + deployed by CI to GitHub Pages)
+docs/.vitepress/dist/
+docs/.vitepress/cache/
+
 # Build artifacts
 /opentdm
 /opentdm-server
