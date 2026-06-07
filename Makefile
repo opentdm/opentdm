@@ -42,7 +42,3 @@ down: ## Stop the docker-compose stack
 .PHONY: logs
 logs: ## Tail app logs
 	docker compose logs -f app
-
-.PHONY: sqlc
-sqlc: ## Regenerate sqlc code (Phase 1+)
-	cd $(SERVER) && sqlc generate
