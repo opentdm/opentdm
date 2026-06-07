@@ -11,6 +11,10 @@ import (
 	"strings"
 )
 
+// maxRateLimit bounds the auth rate-limit knobs — a sanity ceiling that also
+// guarantees the int64→int narrowing in Load can't overflow on 32-bit builds.
+const maxRateLimit = 1_000_000
+
 // Config is the fully-parsed, validated server configuration.
 type Config struct {
 	Bind     string // network interface to bind, e.g. "0.0.0.0"
@@ -80,10 +84,16 @@ func Load() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	if rlRPM < 0 || rlRPM > maxRateLimit {
+		return nil, fmt.Errorf("OPENTDM_AUTH_RATELIMIT_RPM: must be between 0 and %d", maxRateLimit)
+	}
 	c.AuthRateLimitRPM = int(rlRPM)
 	rlBurst, err := envInt64("OPENTDM_AUTH_RATELIMIT_BURST", 5)
 	if err != nil {
 		return nil, err
+	}
+	if rlBurst < 0 || rlBurst > maxRateLimit {
+		return nil, fmt.Errorf("OPENTDM_AUTH_RATELIMIT_BURST: must be between 0 and %d", maxRateLimit)
 	}
 	c.AuthRateLimitBurst = int(rlBurst)
 
