@@ -16,13 +16,17 @@ go test -race -cover ./server/... ./cli/... ./apiclient/...
 Pure packages (`crypto`, `resolve`, `codec`, `cli`) test with no setup.
 
 ## Integration + e2e tests (need Postgres)
-`store` and `httpapi` tests SKIP unless `TEST_DATABASE_URL` is set.
+One-command path: **`make test-e2e`** — stands up a throwaway Postgres, runs the full race+cover suite with
+`-p 1`, and tears it down. Use this unless you need a single test.
+
+`store` and `httpapi` tests SKIP unless `TEST_DATABASE_URL` is set. To run manually:
 ```bash
 docker run -d --name otdm-pg -e POSTGRES_USER=opentdm -e POSTGRES_PASSWORD=opentdm \
   -e POSTGRES_DB=opentdm_test -p 5432:5432 postgres:16-alpine
 export TEST_DATABASE_URL="postgres://opentdm:opentdm@localhost:5432/opentdm_test?sslmode=disable"
-go test -race ./server/...                       # migrate test + TestE2E_* (the whole spine)
-go test -race -run TestE2E_Phase2 ./server/internal/httpapi/...   # a single e2e
+go test -race -p 1 ./server/...                  # -p 1 REQUIRED: store + httpapi e2e share one DB and
+                                                 # TRUNCATE it, so package test binaries must not run concurrently
+go test -race -run TestE2E_Phase2 ./server/internal/httpapi/...   # a single e2e (one package → -p 1 moot)
 docker rm -f otdm-pg                              # cleanup
 ```
 `httpapi/e2e_test.go` and `e2e_phase2_test.go` TRUNCATE and rebuild state each run.

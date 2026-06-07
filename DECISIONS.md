@@ -12,8 +12,8 @@
 3. **Tenancy:** solo/minimal for v1 (Users, Projects, Environments, Configs, API tokens). Nullable
    `org_id` seams left for future teams/RBAC.
 4. **Consumption:** REST API + scoped tokens (core), CLI `pull`/`run`, GitHub Action, SDKs.
-5. **CLI scope v1:** read-only consumption (login/pull/run/list via service tokens). Writes + user PATs
-   in Phase 2.
+5. **CLI scope:** read-only consumption (login/pull/run/list via read-only service tokens) **and** config
+   writes (configs-set / push-file via a user PAT) — both shipped.
 6. **Variable model:** multiple named variable configs per project; deterministic merge by immutable
    per-config `sort_order`; cross-config collisions surfaced in `meta.collisions`.
 
