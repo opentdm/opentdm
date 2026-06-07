@@ -13,7 +13,7 @@ import {
   TextInput,
   Token,
 } from "@primer/react";
-import { FileIcon, GearIcon, KeyIcon } from "@primer/octicons-react";
+import { FileIcon, GearIcon, KeyIcon, PulseIcon } from "@primer/octicons-react";
 import { api, canWrite, Config, Environment, Project } from "../api";
 
 const fileFormats = ["json", "csv", "xml"];
@@ -67,6 +67,9 @@ export default function ProjectPage() {
           </Box>
         </Box>
         <Box sx={{ flex: 1 }} />
+        <Button as={RouterLink} to={`/projects/${slug}/activity`} leadingVisual={PulseIcon}>
+          Activity
+        </Button>
         <Button as={RouterLink} to={`/projects/${slug}/settings`} leadingVisual={GearIcon}>
           Settings
         </Button>

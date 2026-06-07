@@ -53,6 +53,29 @@ func toAdminUserDTO(u model.User) adminUserDTO {
 	}
 }
 
+type auditEntryDTO struct {
+	ID         string    `json:"id"`
+	ProjectID  *string   `json:"project_id"`
+	Actor      string    `json:"actor"`
+	Action     string    `json:"action"`
+	TargetType string    `json:"target_type,omitempty"`
+	TargetID   string    `json:"target_id,omitempty"`
+	Status     int       `json:"status"`
+	CreatedAt  time.Time `json:"created_at"`
+}
+
+func toAuditEntryDTO(e model.AuditEntry) auditEntryDTO {
+	d := auditEntryDTO{
+		ID: e.ID.String(), Actor: e.ActorUsername, Action: e.Action,
+		TargetType: e.TargetType, TargetID: e.TargetID, Status: e.Status, CreatedAt: e.CreatedAt,
+	}
+	if e.ProjectID != nil {
+		s := e.ProjectID.String()
+		d.ProjectID = &s
+	}
+	return d
+}
+
 type environmentDTO struct {
 	ID        string `json:"id"`
 	Slug      string `json:"slug"`

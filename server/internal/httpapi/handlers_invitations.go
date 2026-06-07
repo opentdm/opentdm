@@ -49,6 +49,9 @@ func (h *Handlers) handleCreateInvitation(w http.ResponseWriter, r *http.Request
 		h.writeErr(w, r, err)
 		return
 	}
+	if info := auditInfoFrom(r.Context()); info != nil {
+		info.TargetID = inv.ID.String()
+	}
 	acceptURL := h.inviteBaseURL(r) + "/accept-invite?token=" + raw
 	// Always log the link so operators can recover it without email configured.
 	h.logger.Info("invitation_created", "project", p.Slug, "email", req.Email, "role", req.Role, "accept_url", acceptURL)
