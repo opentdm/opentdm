@@ -7,6 +7,7 @@ export default defineConfig({
   base: "/opentdm/",
   lastUpdated: true,
   cleanUrls: true,
+  head: [["link", { rel: "icon", type: "image/svg+xml", href: "/opentdm/favicon.svg" }]],
   themeConfig: {
     nav: [
       { text: "Guide", link: "/guide/introduction" },
