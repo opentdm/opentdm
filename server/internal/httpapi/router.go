@@ -74,6 +74,7 @@ func NewRouter(opts Options) http.Handler {
 		h := NewHandlers(opts.Service, logger, opts.SecureCookies, opts.MaxBlobBytes, opts.Mailer, opts.BaseURL)
 		r.Route("/api/v1", func(api chi.Router) {
 			api.Use(h.loadAuth)
+			api.Use(h.audit) // record successful resource mutations (no bodies)
 
 			// Public / dual-auth endpoints.
 			api.Get("/auth/setup", h.handleSetupStatus)
@@ -128,6 +129,8 @@ func NewRouter(opts Options) http.Handler {
 				m.Get("/projects/{project}/invitations", h.handleListInvitations)
 				m.Post("/projects/{project}/invitations", h.handleCreateInvitation)
 				m.Delete("/projects/{project}/invitations/{invitation}", h.handleRevokeInvitation)
+				// Project activity feed (viewer+).
+				m.Get("/projects/{project}/audit", h.handleProjectAudit)
 
 				// PAT lifecycle is session-only (a PAT cannot mint/revoke PATs).
 				m.Group(func(s chi.Router) {
@@ -142,6 +145,7 @@ func NewRouter(opts Options) http.Handler {
 					a.Use(h.requireAdmin)
 					a.Get("/users", h.handleListUsers)
 					a.Patch("/users/{user}", h.handleUpdateUser)
+					a.Get("/audit", h.handleGlobalAudit)
 				})
 			})
 		})

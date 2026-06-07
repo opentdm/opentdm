@@ -69,6 +69,9 @@ func (h *Handlers) handleCreateConfig(w http.ResponseWriter, r *http.Request) {
 		h.writeErr(w, r, err)
 		return
 	}
+	if info := auditInfoFrom(r.Context()); info != nil {
+		info.TargetID = c.ID.String()
+	}
 	WriteJSON(w, http.StatusCreated, toConfigDTO(c), nil)
 }
 

@@ -29,6 +29,10 @@ func (h *Handlers) loadProject(w http.ResponseWriter, r *http.Request) (model.Pr
 		h.writeErr(w, r, err)
 		return model.Project{}, false
 	}
+	if info := auditInfoFrom(r.Context()); info != nil {
+		id := p.ID
+		info.ProjectID = &id
+	}
 	return p, true
 }
 

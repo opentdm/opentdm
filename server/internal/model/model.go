@@ -64,6 +64,20 @@ type ProjectMember struct {
 	CreatedAt time.Time
 }
 
+// AuditEntry is one recorded resource mutation (who did what, when).
+type AuditEntry struct {
+	ID            uuid.UUID
+	ProjectID     *uuid.UUID
+	ActorUserID   *uuid.UUID
+	ActorUsername string // joined from users for display ("" if actor deleted)
+	Action        string
+	TargetType    string
+	TargetID      string
+	Status        int
+	IP            string
+	CreatedAt     time.Time
+}
+
 // Invitation is an email invitation to join a project with a role.
 type Invitation struct {
 	ID             uuid.UUID
