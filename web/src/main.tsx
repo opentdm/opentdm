@@ -1,8 +1,9 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
-import { ThemeProvider, BaseStyles, Box } from "@primer/react";
+import { ThemeProvider, BaseStyles, Box } from "./ui/primer";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
+import "./ui/compat.css";
 
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

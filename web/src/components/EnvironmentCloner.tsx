@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Box, Button, Checkbox, ConfirmationDialog, Flash, FormControl, Heading, Select, Text } from "@primer/react";
+import { Box, Button, Checkbox, ConfirmationDialog, Flash, FormControl, Heading, Select, Text } from "../ui/primer";
 import { api, CloneSummary, Environment } from "../api";
 
 interface EnvironmentClonerProps {

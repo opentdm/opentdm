@@ -17,7 +17,7 @@ import {
   Text,
   TextInput,
   Token,
-} from "@primer/react";
+} from "../ui/primer";
 import { DuplicateIcon, GearIcon, KebabHorizontalIcon, PencilIcon, TrashIcon } from "@primer/octicons-react";
 import { api, canWrite, Config, Environment } from "../api";
 import EditorDispatch from "../components/editors/EditorDispatch";

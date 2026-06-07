@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useState } from "react";
-import { Box, Button, Flash, Spinner, Text } from "@primer/react";
+import { Box, Button, Flash, Spinner, Text } from "../../ui/primer";
 import { api, Config } from "../../api";
 import type { EditorLanguage } from "./CodeMirrorLazy";
 
