@@ -136,7 +136,6 @@ type Config struct {
 	SortOrder   int
 	Description string
 	IsSecret    bool
-	Tags        []string
 	CreatedBy   *uuid.UUID
 	ArchivedAt  *time.Time
 	CreatedAt   time.Time
