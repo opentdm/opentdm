@@ -36,8 +36,6 @@ var auditActions = map[string]auditAction{
 	"PUT /api/v1/projects/{project}/configs/{config}/items":        {"config.items.updated", "config", "config"},
 	"PUT /api/v1/projects/{project}/configs/{config}/blob":         {"config.file.updated", "config", "config"},
 	"POST /api/v1/projects/{project}/configs/{config}/rollback":    {"config.rolled_back", "config", "config"},
-	"POST /api/v1/projects/{project}/configs/{config}/clone":       {"config.cloned", "config", "config"},
-	"POST /api/v1/projects/{project}/clone-environment":            {"environment.cloned", "environment", ""},
 	"POST /api/v1/projects/{project}/tokens":                       {"token.created", "token", ""},
 	"DELETE /api/v1/projects/{project}/tokens/{token}":             {"token.revoked", "token", "token"},
 	"POST /api/v1/projects/{project}/members":                      {"member.added", "member", ""},

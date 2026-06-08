@@ -19,11 +19,21 @@ var fileFormats = map[string]bool{
 	model.FormatJSON: true, model.FormatCSV: true, model.FormatXML: true,
 }
 
+// envOnlyMode gates config CREATION to variable/env configs for this release. It
+// is a reversible product flag — set it false to re-enable properties/secret and
+// file (json/csv/xml) configs. Existing non-env configs stay fully
+// readable/resolvable; the format-enum maps and the DB CHECK constraint are left
+// intact on purpose so historical data keeps validating.
+const envOnlyMode = true
+
 // CreateConfig creates a config (and tags) after validating the kind/format
 // pairing.
 func (s *Service) CreateConfig(ctx context.Context, creator model.User, projectID uuid.UUID, c model.Config) (model.Config, error) {
 	if c.Name == "" {
 		return model.Config{}, invalid("name", "must not be empty")
+	}
+	if envOnlyMode && (c.Kind != model.KindVariable || c.Format != model.FormatEnv) {
+		return model.Config{}, invalid("format", "only env configs can be created")
 	}
 	switch c.Kind {
 	case model.KindVariable:
