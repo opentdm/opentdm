@@ -48,13 +48,12 @@ func (h *Handlers) handleCreateConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req struct {
-		Kind        string   `json:"kind"`
-		Format      string   `json:"format"`
-		Name        string   `json:"name"`
-		SortOrder   int      `json:"sort_order"`
-		Description string   `json:"description"`
-		IsSecret    bool     `json:"is_secret"`
-		Tags        []string `json:"tags"`
+		Kind        string `json:"kind"`
+		Format      string `json:"format"`
+		Name        string `json:"name"`
+		SortOrder   int    `json:"sort_order"`
+		Description string `json:"description"`
+		IsSecret    bool   `json:"is_secret"`
 	}
 	if err := decodeJSON(w, r, &req); err != nil {
 		h.badRequest(w, r, "invalid JSON body")
@@ -63,7 +62,7 @@ func (h *Handlers) handleCreateConfig(w http.ResponseWriter, r *http.Request) {
 	user, _ := userFrom(r.Context())
 	c, err := h.svc.CreateConfig(r.Context(), user, p.ID, model.Config{
 		Kind: req.Kind, Format: req.Format, Name: req.Name, SortOrder: req.SortOrder,
-		Description: req.Description, IsSecret: req.IsSecret, Tags: req.Tags,
+		Description: req.Description, IsSecret: req.IsSecret,
 	})
 	if err != nil {
 		h.writeErr(w, r, err)
@@ -87,7 +86,7 @@ func (h *Handlers) handleGetConfig(w http.ResponseWriter, r *http.Request) {
 	WriteJSON(w, http.StatusOK, toConfigDTO(c), nil)
 }
 
-// PATCH /projects/{project}/configs/{config}  {name?,sort_order,description,tags}
+// PATCH /projects/{project}/configs/{config}  {name?,sort_order,description}
 func (h *Handlers) handleUpdateConfig(w http.ResponseWriter, r *http.Request) {
 	p, ok := h.resolveProjectRole(w, r, roleEditor)
 	if !ok {
@@ -98,10 +97,9 @@ func (h *Handlers) handleUpdateConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req struct {
-		Name        string   `json:"name"`
-		SortOrder   int      `json:"sort_order"`
-		Description string   `json:"description"`
-		Tags        []string `json:"tags"`
+		Name        string `json:"name"`
+		SortOrder   int    `json:"sort_order"`
+		Description string `json:"description"`
 	}
 	if err := decodeJSON(w, r, &req); err != nil {
 		h.badRequest(w, r, "invalid JSON body")
@@ -111,7 +109,7 @@ func (h *Handlers) handleUpdateConfig(w http.ResponseWriter, r *http.Request) {
 	if name == "" {
 		name = c.Name
 	}
-	updated, err := h.svc.UpdateConfig(r.Context(), p.ID, c.ID, name, req.SortOrder, req.Description, req.Tags)
+	updated, err := h.svc.UpdateConfig(r.Context(), p.ID, c.ID, name, req.SortOrder, req.Description)
 	if err != nil {
 		h.writeErr(w, r, err)
 		return

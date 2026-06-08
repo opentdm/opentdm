@@ -184,13 +184,13 @@ func TestE2E_EnvConfigCRUD(t *testing.T) {
 	}
 
 	// ---- Config update + archive ----
-	code, _ := do("PATCH", "/projects/demo/configs/"+cfgID, map[string]any{"name": "renamed", "sort_order": 5, "tags": []string{"core", "db"}})
+	code, _ := do("PATCH", "/projects/demo/configs/"+cfgID, map[string]any{"name": "renamed", "sort_order": 5})
 	if code != 200 {
 		t.Fatalf("update config: %d", code)
 	}
 	_, b = do("GET", "/projects/demo/configs", nil)
-	if !bytes.Contains(b, []byte(`"renamed"`)) || !bytes.Contains(b, []byte(`"core"`)) {
-		t.Errorf("config rename/retag not reflected: %s", b)
+	if !bytes.Contains(b, []byte(`"renamed"`)) {
+		t.Errorf("config rename not reflected: %s", b)
 	}
 	if code, _ := do("DELETE", "/projects/demo/configs/"+cfgID, nil); code != 200 {
 		t.Fatalf("archive config: %d", code)

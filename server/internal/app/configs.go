@@ -26,8 +26,7 @@ var fileFormats = map[string]bool{
 // intact on purpose so historical data keeps validating.
 const envOnlyMode = true
 
-// CreateConfig creates a config (and tags) after validating the kind/format
-// pairing.
+// CreateConfig creates a config after validating the kind/format pairing.
 func (s *Service) CreateConfig(ctx context.Context, creator model.User, projectID uuid.UUID, c model.Config) (model.Config, error) {
 	if c.Name == "" {
 		return model.Config{}, invalid("name", "must not be empty")
@@ -69,8 +68,8 @@ func (s *Service) ListConfigs(ctx context.Context, projectID uuid.UUID) ([]model
 	return s.store.Q().ListConfigs(ctx, projectID)
 }
 
-// UpdateConfig renames/retags a config and sets its sort_order/description.
-func (s *Service) UpdateConfig(ctx context.Context, projectID, configID uuid.UUID, name string, sortOrder int, description string, tags []string) (model.Config, error) {
+// UpdateConfig renames a config and sets its sort_order/description.
+func (s *Service) UpdateConfig(ctx context.Context, projectID, configID uuid.UUID, name string, sortOrder int, description string) (model.Config, error) {
 	if name == "" {
 		return model.Config{}, invalid("name", "must not be empty")
 	}
@@ -83,7 +82,7 @@ func (s *Service) UpdateConfig(ctx context.Context, projectID, configID uuid.UUI
 		if cur.ProjectID != projectID {
 			return ErrNotFound
 		}
-		c, err := q.UpdateConfig(ctx, model.Config{ID: configID, Name: name, SortOrder: sortOrder, Description: description, Tags: tags})
+		c, err := q.UpdateConfig(ctx, model.Config{ID: configID, Name: name, SortOrder: sortOrder, Description: description})
 		if err != nil {
 			if isUniqueViolation(err) {
 				return ErrConflict
@@ -124,6 +123,11 @@ type VarOutput struct {
 // SetItems encrypts and replaces all items at one (config, layer) AND appends a
 // version snapshot — both in one transaction. envSlug "" or "base" targets the
 // base layer. Returns the resulting current version.
+//
+// Inheritance convenience: when writing a NON-base layer, every new key (one not
+// yet present in base) is also seeded into base with an empty value in the same
+// transaction — so a variable added in one environment "exists everywhere"
+// (inherited as empty elsewhere). Tombstones never propagate.
 func (s *Service) SetItems(ctx context.Context, project model.Project, config model.Config, envSlug string, inputs []VarInput, comment *string, actor *uuid.UUID) (model.ConfigVersion, error) {
 	if config.ArchivedAt != nil {
 		return model.ConfigVersion{}, ErrConflict
@@ -138,6 +142,37 @@ func (s *Service) SetItems(ctx context.Context, project model.Project, config mo
 	}
 	defer zero(dek)
 
+	var version model.ConfigVersion
+	err = s.store.InTx(ctx, func(q *store.Queries) error {
+		version, err = s.writeLayer(ctx, q, project, config, envID, envAAD, cipher, dek, inputs, comment, actor)
+		if err != nil {
+			return err
+		}
+		if envID != nil {
+			baseInputs, err := s.baseWithSeededKeys(ctx, q, project, config, cipher, inputs)
+			if err != nil {
+				return err
+			}
+			if baseInputs != nil {
+				if _, err := s.writeLayer(ctx, q, project, config, nil, "", cipher, dek, baseInputs, nil, actor); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		if isUniqueViolation(err) {
+			return model.ConfigVersion{}, ErrConflict // concurrent save lost the version-number race
+		}
+		return model.ConfigVersion{}, err
+	}
+	return version, nil
+}
+
+// writeLayer encrypts the inputs and replaces all items at one (config, layer),
+// then appends a version snapshot — within the caller's transaction.
+func (s *Service) writeLayer(ctx context.Context, q *store.Queries, project model.Project, config model.Config, envID *uuid.UUID, envAAD string, cipher *crypto.DEKCipher, dek []byte, inputs []VarInput, comment *string, actor *uuid.UUID) (model.ConfigVersion, error) {
 	items := make([]store.ItemInput, 0, len(inputs))
 	snap := make([]codec.SnapshotItem, 0, len(inputs))
 	for _, in := range inputs {
@@ -171,25 +206,51 @@ func (s *Service) SetItems(ctx context.Context, project model.Project, config mo
 	if err != nil {
 		return model.ConfigVersion{}, err
 	}
-
-	var version model.ConfigVersion
-	err = s.store.InTx(ctx, func(q *store.Queries) error {
-		if err := q.ReplaceItems(ctx, config.ID, envID, items, actor); err != nil {
-			return err
-		}
-		version, err = s.appendVersionDedup(ctx, q, config.ID, envID, hmac, store.VersionInput{
-			SnapshotKind: model.KindVariable, SnapshotCiphertext: snapCT, DEKVersion: project.DEKVersion,
-			ContentHMAC: hmac, ByteSize: int64(len(canon)), Comment: comment, CreatedBy: actor,
-		})
-		return err
-	})
-	if err != nil {
-		if isUniqueViolation(err) {
-			return model.ConfigVersion{}, ErrConflict // concurrent save lost the version-number race
-		}
+	if err := q.ReplaceItems(ctx, config.ID, envID, items, actor); err != nil {
 		return model.ConfigVersion{}, err
 	}
-	return version, nil
+	return s.appendVersionDedup(ctx, q, config.ID, envID, hmac, store.VersionInput{
+		SnapshotKind: model.KindVariable, SnapshotCiphertext: snapCT, DEKVersion: project.DEKVersion,
+		ContentHMAC: hmac, ByteSize: int64(len(canon)), Comment: comment, CreatedBy: actor,
+	})
+}
+
+// baseWithSeededKeys returns the full base-layer inputs (current base, decrypted,
+// plus any new keys from an env-layer write seeded with an empty value) when at
+// least one new key would be added; otherwise nil to signal "base unchanged, skip
+// the write". Runs inside the caller's transaction.
+func (s *Service) baseWithSeededKeys(ctx context.Context, q *store.Queries, project model.Project, config model.Config, cipher *crypto.DEKCipher, envInputs []VarInput) ([]VarInput, error) {
+	baseRows, err := q.ListItems(ctx, config.ID, nil)
+	if err != nil {
+		return nil, err
+	}
+	have := make(map[string]bool, len(baseRows))
+	out := make([]VarInput, 0, len(baseRows)+1)
+	for _, it := range baseRows {
+		have[it.Key] = true
+		v := VarInput{Key: it.Key, IsSecret: it.IsSecret, Deleted: it.Deleted}
+		if !it.Deleted {
+			pt, err := cipher.Open(it.ValueCiphertext, crypto.ItemAAD(project.ID.String(), "", config.ID.String(), it.Key))
+			if err != nil {
+				return nil, err
+			}
+			v.Value = string(pt)
+		}
+		out = append(out, v)
+	}
+	added := false
+	for _, in := range envInputs {
+		if in.Deleted || have[in.Key] {
+			continue
+		}
+		out = append(out, VarInput{Key: in.Key}) // empty value, not secret
+		have[in.Key] = true
+		added = true
+	}
+	if !added {
+		return nil, nil
+	}
+	return out, nil
 }
 
 // appendVersionDedup appends a new version unless the layer's current version

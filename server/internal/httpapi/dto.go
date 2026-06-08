@@ -96,19 +96,14 @@ type configDTO struct {
 	SortOrder   int       `json:"sort_order"`
 	Description string    `json:"description"`
 	IsSecret    bool      `json:"is_secret"`
-	Tags        []string  `json:"tags"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 func toConfigDTO(c model.Config) configDTO {
-	tags := c.Tags
-	if tags == nil {
-		tags = []string{}
-	}
 	return configDTO{
 		ID: c.ID.String(), Kind: c.Kind, Format: c.Format, Name: c.Name, SortOrder: c.SortOrder,
-		Description: c.Description, IsSecret: c.IsSecret, Tags: tags, CreatedAt: c.CreatedAt, UpdatedAt: c.UpdatedAt,
+		Description: c.Description, IsSecret: c.IsSecret, CreatedAt: c.CreatedAt, UpdatedAt: c.UpdatedAt,
 	}
 }
 
