@@ -32,6 +32,9 @@ func (h *Handlers) handleCreateProject(w http.ResponseWriter, r *http.Request) {
 		h.badRequest(w, r, "invalid JSON body")
 		return
 	}
+	if req.Slug == "" {
+		req.Slug = slugify(req.Name) // slug is derived from the name; no manual entry
+	}
 	user, _ := userFrom(r.Context())
 	p, err := h.svc.CreateProject(r.Context(), user, req.Slug, req.Name, req.Description)
 	if err != nil {

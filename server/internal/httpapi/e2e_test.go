@@ -106,7 +106,7 @@ func TestE2E_VerticalSlice(t *testing.T) {
 
 	// 3. Create a variable config.
 	code, body = do("POST", "/projects/payments/configs", map[string]any{
-		"kind": "variable", "format": "env", "name": "app", "tags": []string{"core"},
+		"kind": "variable", "format": "env", "name": "app",
 	})
 	if code != http.StatusCreated {
 		t.Fatalf("create config: %d %s", code, body)
