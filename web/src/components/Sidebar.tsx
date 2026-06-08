@@ -9,13 +9,22 @@ import {
   GearIcon,
   SignOutIcon,
   PersonIcon,
+  SearchIcon,
 } from "@primer/octicons-react";
 import { User } from "../api";
 import { useProjectsCtx } from "../lib/projects";
 import { useFavourites } from "../lib/favourites";
 import { hueFromString } from "../lib/color";
 
-export default function Sidebar({ me, onSignOut }: { me: User; onSignOut: () => void }) {
+export default function Sidebar({
+  me,
+  onSignOut,
+  onSearch,
+}: {
+  me: User;
+  onSignOut: () => void;
+  onSearch: () => void;
+}) {
   const { pathname } = useLocation();
   const { projects } = useProjectsCtx();
   const { favs } = useFavourites();
@@ -29,6 +38,12 @@ export default function Sidebar({ me, onSignOut }: { me: User; onSignOut: () => 
         <PackageIcon size={22} />
         opentdm
       </RouterLink>
+
+      <button type="button" className="otdm-sb-search" onClick={onSearch}>
+        <SearchIcon size={15} />
+        Search…
+        <kbd>⌘K</kbd>
+      </button>
 
       <div className="otdm-sb-scroll">
         <div className="otdm-sb-section">Projects</div>
