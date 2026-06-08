@@ -97,6 +97,19 @@ func Merge(configs []ConfigInput) Result {
 	return out
 }
 
+// ResolveOne collapses a single config's base+override into a sorted result with
+// no cross-config merge — a lone config cannot collide with itself, so Collisions
+// is always empty. It reuses effective(), so the override-over-base + tombstone
+// semantics are identical to the whole-project Merge path.
+func ResolveOne(cfg ConfigInput) Result {
+	eff := effective(cfg)
+	out := Result{}
+	for _, key := range sortedKeys(eff) {
+		out.Variables = append(out.Variables, eff[key])
+	}
+	return out
+}
+
 // effective collapses one config's base + override into a single key→Resolved
 // map: base first, then overrides (set or tombstone-delete).
 func effective(cfg ConfigInput) map[string]Resolved {

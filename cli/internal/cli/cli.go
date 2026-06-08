@@ -16,8 +16,8 @@ const usage = `opentdm — manage project/environment config and pull it into CI
 
 Usage:
   opentdm login --host URL --token TOKEN [--project SLUG]
-  opentdm pull  --env ENV [--project SLUG] [--format dotenv|json|shell|yaml|properties] [-o FILE] [--collisions]
-  opentdm run   --env ENV [--project SLUG] -- <command> [args...]
+  opentdm pull  --env ENV [--project SLUG] [--config NAME] [--format dotenv|json|shell|yaml|properties] [-o FILE] [--collisions]
+  opentdm run   --env ENV [--project SLUG] [--config NAME] -- <command> [args...]
   opentdm list  [--project SLUG] [--json]                                (needs a user PAT)
   opentdm configs set --env ENV [--secret] CONFIG KEY=VAL [KEY=VAL...]   (needs a user PAT)
   opentdm push-file   --env ENV --file PATH CONFIG                       (needs a user PAT)
@@ -87,6 +87,7 @@ func cmdPull(args []string) int {
 	env := fs.String("env", "", "environment slug (required)")
 	format := fs.String("format", "dotenv", "output format: dotenv|json|shell|yaml|properties")
 	output := fs.String("o", "", "output file (default stdout)")
+	config := fs.String("config", "", "resolve a single object by name (per-file) instead of the whole project")
 	showCollisions := fs.Bool("collisions", false, "list cross-config key collisions on stderr")
 	if err := fs.Parse(args); err != nil {
 		return 2
@@ -96,12 +97,21 @@ func cmdPull(args []string) int {
 		return code
 	}
 	client := apiclient.New(cfg.Host, cfg.Token)
-	res, err := client.Resolve(context.Background(), cfg.Project, *env, *format)
+	var res apiclient.ResolveResult
+	var err error
+	if *config != "" {
+		// Per-file retrieval: a single object, no cross-config merge or collisions.
+		res, err = client.ResolveConfig(context.Background(), cfg.Project, *config, *env, *format)
+	} else {
+		res, err = client.Resolve(context.Background(), cfg.Project, *env, *format)
+	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
-	warnCollisions(client, cfg, *env, res.Collisions, *showCollisions)
+	if *config == "" {
+		warnCollisions(client, cfg, *env, res.Collisions, *showCollisions)
+	}
 	if *output == "" || *output == "-" {
 		_, _ = os.Stdout.Write(res.Body)
 		return 0
@@ -144,6 +154,7 @@ func cmdRun(args []string) int {
 	token := fs.String("token", "", "service token")
 	project := fs.String("project", "", "project slug")
 	env := fs.String("env", "", "environment slug (required)")
+	config := fs.String("config", "", "resolve a single object by name (per-file) instead of the whole project")
 	if err := fs.Parse(flagArgs); err != nil {
 		return 2
 	}
@@ -156,13 +167,21 @@ func cmdRun(args []string) int {
 		return code
 	}
 	client := apiclient.New(cfg.Host, cfg.Token)
-	vars, collisions, err := client.ResolveMap(context.Background(), cfg.Project, *env)
+	var vars map[string]string
+	var err error
+	if *config != "" {
+		// Per-file retrieval: a single object, no cross-config merge or collisions.
+		vars, err = client.ResolveConfigMap(context.Background(), cfg.Project, *config, *env)
+	} else {
+		var collisions int
+		vars, collisions, err = client.ResolveMap(context.Background(), cfg.Project, *env)
+		if err == nil && collisions > 0 {
+			fmt.Fprintf(os.Stderr, "warning: %d cross-config key collision(s) in %s/%s\n", collisions, cfg.Project, *env)
+		}
+	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
-	}
-	if collisions > 0 {
-		fmt.Fprintf(os.Stderr, "warning: %d cross-config key collision(s) in %s/%s\n", collisions, cfg.Project, *env)
 	}
 	return runProcess(cmdArgs, mergeEnv(os.Environ(), vars))
 }

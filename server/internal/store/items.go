@@ -48,6 +48,35 @@ func (q *Queries) ResolveItems(ctx context.Context, projectID, envID uuid.UUID) 
 	return out, rows.Err()
 }
 
+// ResolveItemsForConfig returns the base + target-environment items for ONE
+// variable config (the per-file resolve path). Same row shape as ResolveItems;
+// the caller decrypts and collapses with resolve.ResolveOne (no cross-config
+// merge). Excludes archived configs.
+func (q *Queries) ResolveItemsForConfig(ctx context.Context, configID, envID uuid.UUID) ([]ResolveItem, error) {
+	rows, err := q.db.Query(ctx, `
+		SELECT c.id, c.name, c.sort_order,
+		       i.key, i.value_ciphertext, i.dek_version, i.is_secret, i.deleted, (i.env_id IS NULL) AS is_base
+		FROM configs c
+		JOIN config_items i ON i.config_id = c.id
+		WHERE c.id = $1 AND c.kind = 'variable' AND c.archived_at IS NULL
+		  AND (i.env_id IS NULL OR i.env_id = $2)
+		ORDER BY i.key`, configID, envID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []ResolveItem
+	for rows.Next() {
+		var it ResolveItem
+		if err := rows.Scan(&it.ConfigID, &it.ConfigName, &it.SortOrder, &it.Key,
+			&it.ValueCiphertext, &it.DEKVersion, &it.IsSecret, &it.Deleted, &it.IsBase); err != nil {
+			return nil, err
+		}
+		out = append(out, it)
+	}
+	return out, rows.Err()
+}
+
 // ItemInput is an encrypted item to persist.
 type ItemInput struct {
 	Key             string

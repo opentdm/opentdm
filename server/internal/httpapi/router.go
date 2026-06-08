@@ -99,6 +99,8 @@ func NewRouter(opts Options) http.Handler {
 			})
 			// Consumption: session OR scoped service token (checked in handler).
 			api.Get("/projects/{project}/resolve", h.handleResolve)
+			// Per-file consumption: resolve a single config (base → env override).
+			api.Get("/projects/{project}/configs/{config}/resolve", h.handleResolveConfig)
 
 			// Management endpoints: require a session user + CSRF.
 			api.Group(func(m chi.Router) {
@@ -127,9 +129,6 @@ func NewRouter(opts Options) http.Handler {
 				m.Get("/projects/{project}/configs/{config}/versions/{version}", h.handleGetVersion)
 				m.Get("/projects/{project}/configs/{config}/diff", h.handleDiff)
 				m.Post("/projects/{project}/configs/{config}/rollback", h.handleRollback)
-				// Clone an object's content from one environment layer to another.
-				m.Post("/projects/{project}/configs/{config}/clone", h.handleCloneConfig)
-				m.Post("/projects/{project}/clone-environment", h.handleCloneEnvironment)
 				m.Get("/projects/{project}/tokens", h.handleListTokens)
 				m.Post("/projects/{project}/tokens", h.handleCreateToken)
 				m.Delete("/projects/{project}/tokens/{token}", h.handleRevokeToken)

@@ -2,10 +2,10 @@ package resolve
 
 import "testing"
 
-// TestMerge_EmptyOverrideShadowsBase pins the semantics that the clone feature's
-// "without values" option relies on: a present, non-deleted env override with an
-// empty value OVERRIDES (hides) the inherited base value — it is a placeholder,
-// not "inherit from base". (Only a tombstone restores base-absence.)
+// TestMerge_EmptyOverrideShadowsBase pins a subtle merge semantic: a present,
+// non-deleted env override with an empty value OVERRIDES (hides) the inherited
+// base value — it is a placeholder, not "inherit from base". (Only a tombstone
+// restores base-absence.)
 func TestMerge_EmptyOverrideShadowsBase(t *testing.T) {
 	cfg := ConfigInput{
 		ConfigName: "app",
