@@ -10,6 +10,7 @@ import App from "./App";
 import "@primer/primitives/dist/css/functional/themes/light.css";
 import "@primer/primitives/dist/css/functional/themes/dark.css";
 import "./ui/compat.css";
+import "./ui/filebrowser.css";
 
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
