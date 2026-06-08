@@ -13,6 +13,7 @@ import "@primer/primitives/dist/css/functional/themes/dark.css";
 import "./ui/compat.css";
 import "./ui/shell.css";
 import "./ui/settings.css";
+import "./ui/cmdk.css";
 import "./ui/filebrowser.css";
 
 createRoot(document.getElementById("root")!).render(

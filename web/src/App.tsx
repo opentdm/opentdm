@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { Box, Spinner } from "./ui/primer";
 import { api, User } from "./api";
 import Sidebar from "./components/Sidebar";
+import CommandPalette from "./components/CommandPalette";
 import { ProjectsProvider } from "./lib/projects";
 import Setup from "./pages/Setup";
 import Login from "./pages/Login";
@@ -81,15 +82,28 @@ export default function App() {
 
 function Shell({ me, onLogout }: { me: User; onLogout: () => void }) {
   const nav = useNavigate();
+  const [cmdkOpen, setCmdkOpen] = useState(false);
   async function logout() {
     await api.post("/auth/logout");
     onLogout();
     nav("/login");
   }
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setCmdkOpen((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
   return (
     <ProjectsProvider>
       <Box className="otdm-app">
-        <Sidebar me={me} onSignOut={logout} />
+        <Sidebar me={me} onSignOut={logout} onSearch={() => setCmdkOpen(true)} />
         <Box className="otdm-content">
           <Box className="otdm-content-inner">
             <Routes>
@@ -108,6 +122,7 @@ function Shell({ me, onLogout }: { me: User; onLogout: () => void }) {
           </Box>
         </Box>
       </Box>
+      <CommandPalette open={cmdkOpen} onClose={() => setCmdkOpen(false)} />
     </ProjectsProvider>
   );
 }
