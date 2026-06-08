@@ -42,3 +42,6 @@ docs/.vitepress/cache/
 # Playwright output
 .playwright-mcp/
 *.png
+
+# Local design reference bundle (prototype + handoff) — implemented into web/, not shipped
+design_handoff_opentdm_redesign/
