@@ -1,0 +1,96 @@
+/* Consolidated Settings page: 2-column sub-nav + content, and the Appearance
+   theme cards. className CSS (Primer functional vars) for the layout grid and
+   :hover/active states the sx-compat shim can't express. */
+
+.otdm-settings {
+  display: grid;
+  grid-template-columns: 232px minmax(0, 1fr);
+  gap: 24px;
+  margin-top: 16px;
+  align-items: start;
+}
+.otdm-settings-nav {
+  position: sticky;
+  top: 24px;
+}
+@media (max-width: 768px) {
+  .otdm-settings {
+    grid-template-columns: 1fr;
+  }
+  .otdm-settings-nav {
+    position: static;
+  }
+}
+
+/* Profile identity avatar (initials) */
+.otdm-avatar-lg {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex: none;
+  font-weight: 600;
+  font-size: 18px;
+  text-transform: uppercase;
+  color: var(--fgColor-onEmphasis, #fff);
+  background: var(--bgColor-accent-emphasis, var(--fgColor-accent));
+}
+
+/* Appearance theme cards */
+.otdm-theme-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+  max-width: 560px;
+}
+.otdm-theme-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid var(--borderColor-default);
+  border-radius: 8px;
+  padding: 12px;
+  cursor: pointer;
+  background: var(--bgColor-default);
+  color: var(--fgColor-default);
+  text-align: left;
+}
+.otdm-theme-card:hover {
+  border-color: var(--borderColor-emphasis, var(--borderColor-default));
+}
+.otdm-theme-card.active {
+  border-color: var(--borderColor-accent-emphasis, var(--fgColor-accent));
+  box-shadow: 0 0 0 1px var(--borderColor-accent-emphasis, var(--fgColor-accent));
+}
+.otdm-theme-card-hd {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 13px;
+}
+.otdm-theme-card-hd .check {
+  margin-left: auto;
+  display: flex;
+  color: var(--fgColor-accent);
+}
+.otdm-theme-swatch {
+  display: flex;
+  height: 52px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--borderColor-default);
+}
+.otdm-theme-swatch .pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 10px;
+}
+.otdm-theme-swatch .bar {
+  height: 5px;
+  border-radius: 3px;
+}
