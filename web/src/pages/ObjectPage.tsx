@@ -15,38 +15,55 @@ import {
   Text,
   TextInput,
 } from "../ui/primer";
-import { GearIcon, KebabHorizontalIcon, PencilIcon, TrashIcon } from "@primer/octicons-react";
-import { api, canWrite, Config, Environment } from "../api";
+import { CopyIcon, EyeClosedIcon, EyeIcon, KebabHorizontalIcon, PencilIcon, TrashIcon } from "@primer/octicons-react";
+import { api, canWrite, Config, Environment, Project } from "../api";
 import EditorDispatch from "../components/editors/EditorDispatch";
-import ResolvedView from "../components/ResolvedView";
 import VersionHistory from "../components/VersionHistory";
+import FileTree from "../components/filebrowser/FileTree";
+import BranchEnvMenu from "../components/filebrowser/BranchEnvMenu";
+import CodeFileView from "../components/filebrowser/CodeFileView";
+import DeltaBadge from "../components/filebrowser/DeltaBadge";
 
+// The object page is a GitHub-style file browser: the project's objects are a file
+// tree on the left; the right shows the selected object resolved for a chosen
+// environment (picked with a branch-style dropdown), read-only by default with an
+// Edit toggle into the inherited-aware editor. Version history sits below.
 export default function ObjectPage() {
   const { slug = "", configId = "" } = useParams();
   const nav = useNavigate();
-  const [config, setConfig] = useState<Config | null>(null);
+  const [project, setProject] = useState<Project | null>(null);
+  const [configs, setConfigs] = useState<Config[]>([]);
   const [envs, setEnvs] = useState<Environment[]>([]);
-  const [role, setRole] = useState<string | undefined>(undefined);
-  const [layer, setLayer] = useState("base");
+  const [config, setConfig] = useState<Config | null>(null);
+  const [env, setEnv] = useState("base");
   const [editing, setEditing] = useState(false);
-  const [reloadNonce, setReloadNonce] = useState(0);
-  const [resolvedRefresh, setResolvedRefresh] = useState(0);
+  const [reveal, setReveal] = useState(false);
+  const [refresh, setRefresh] = useState(0);
+  const [copyText, setCopyText] = useState("");
+  const [copied, setCopied] = useState(false);
+  const [editingName, setEditingName] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
   const [err, setErr] = useState("");
 
-  async function load() {
-    try {
-      const [c, e, p] = await Promise.all([api.getConfig(slug, configId), api.listEnvs(slug), api.getProject(slug)]);
-      setConfig(c);
-      setEnvs(e);
-      setRole(p.your_role);
-    } catch (e: any) {
-      setErr(e.message);
-    }
-  }
+  // Project-scoped data (tree, envs, role) reloads only when the project changes.
   useEffect(() => {
-    void load();
+    Promise.all([api.getProject(slug), api.get<Config[]>(`/projects/${slug}/configs`), api.listEnvs(slug)])
+      .then(([p, cs, es]) => {
+        setProject(p);
+        setConfigs(cs);
+        setEnvs(es);
+      })
+      .catch((e: any) => setErr(e.message));
+  }, [slug]);
+
+  // The selected object reloads when navigating between files in the tree.
+  useEffect(() => {
+    setEditing(false);
+    setReveal(false);
+    api
+      .getConfig(slug, configId)
+      .then(setConfig)
+      .catch((e: any) => setErr(e.message));
   }, [slug, configId]);
 
   async function remove() {
@@ -59,12 +76,24 @@ export default function ObjectPage() {
     }
   }
 
-  if (!config) {
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(copyText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      /* clipboard unavailable */
+    }
+  }
+
+  const bump = () => setRefresh((n) => n + 1);
+
+  if (!config || !project) {
     return err ? <Flash variant="danger">{err}</Flash> : <Spinner />;
   }
 
-  const layers = ["base", ...envs.map((e) => e.slug)];
-  const readOnly = !canWrite(role);
+  const readOnly = !canWrite(project.your_role);
+  const isVar = config.kind === "variable";
 
   return (
     <Box sx={{ display: "grid", gap: 3 }}>
@@ -78,10 +107,12 @@ export default function ObjectPage() {
       {err && <Flash variant="danger">{err}</Flash>}
       {readOnly && <Flash>You have read-only (viewer) access to this project.</Flash>}
 
+      {/* Object header */}
       <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
         <Heading sx={{ fontSize: 4 }}>{config.name}</Heading>
         <Label variant="secondary">{config.format}</Label>
         <Label variant={config.kind === "file" ? "accent" : "default"}>{config.kind}</Label>
+        {config.format === "secret" && <Label variant="danger">secret</Label>}
         <Box sx={{ flex: 1 }} />
         {!readOnly && (
           <ActionMenu>
@@ -90,7 +121,7 @@ export default function ObjectPage() {
             </ActionMenu.Anchor>
             <ActionMenu.Overlay width="small">
               <ActionList>
-                <ActionList.Item onSelect={() => setEditing((v) => !v)}>
+                <ActionList.Item onSelect={() => setEditingName((v) => !v)}>
                   <ActionList.LeadingVisual>
                     <PencilIcon />
                   </ActionList.LeadingVisual>
@@ -108,71 +139,85 @@ export default function ObjectPage() {
         )}
       </Box>
 
-      {editing && (
+      {editingName && (
         <SettingsPanel
           slug={slug}
           config={config}
-          onClose={() => setEditing(false)}
+          onClose={() => setEditingName(false)}
           onSaved={(c) => {
             setConfig(c);
-            setEditing(false);
+            setConfigs((cs) => cs.map((x) => (x.id === c.id ? c : x)));
+            setEditingName(false);
           }}
         />
       )}
 
-      {/* Environment switcher — base is the shared layer; each env overrides it. */}
-      <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", borderBottomWidth: 1, borderBottomStyle: "solid", borderColor: "border.default", pb: 2 }}>
-        {layers.map((l) => {
-          const env = envs.find((e) => e.slug === l);
-          return (
-            <Button
-              key={l}
-              size="small"
-              variant={layer === l ? "primary" : "invisible"}
-              onClick={() => setLayer(l)}
-              trailingVisual={env?.is_default ? () => <Label variant="accent">default</Label> : undefined}
-            >
-              {l}
-            </Button>
-          );
-        })}
-      </Box>
+      {/* File browser card */}
+      <div className="otdm-fb">
+        <FileTree slug={slug} projectName={project.name} configs={configs} activeId={configId} />
+        <div className="otdm-fb-main">
+          <div className="otdm-fb-toolbar">
+            <span className="otdm-fb-crumb">
+              <b>{config.name}</b>
+            </span>
+            <BranchEnvMenu value={env} envs={envs} onChange={setEnv} />
+            <DeltaBadge slug={slug} config={config} env={env} refreshToken={refresh} />
+            <Box sx={{ flex: 1 }} />
+            {!readOnly && (
+              <Button
+                leadingVisual={editing ? EyeIcon : PencilIcon}
+                onClick={() => setEditing((v) => !v)}
+              >
+                {editing ? "View" : "Edit"}
+              </Button>
+            )}
+            {!editing && isVar && (
+              <Button leadingVisual={reveal ? EyeClosedIcon : EyeIcon} onClick={() => setReveal((v) => !v)}>
+                {reveal ? "Hide" : "Reveal"}
+              </Button>
+            )}
+            {!editing && (
+              <Button leadingVisual={CopyIcon} onClick={copy}>
+                {copied ? "Copied" : "Copy"}
+              </Button>
+            )}
+          </div>
+          <div className="otdm-fb-body">
+            {editing ? (
+              <Box sx={{ p: 3 }}>
+                <EditorDispatch
+                  key={`${config.id}:${env}:${refresh}`}
+                  slug={slug}
+                  config={config}
+                  layer={env}
+                  readOnly={readOnly}
+                  onSaved={bump}
+                />
+              </Box>
+            ) : (
+              <CodeFileView
+                slug={slug}
+                config={config}
+                env={env}
+                reveal={reveal}
+                refreshToken={refresh}
+                onText={setCopyText}
+              />
+            )}
+          </div>
+        </div>
+      </div>
 
-      <EditorDispatch
-        key={`${config.id}:${layer}:${reloadNonce}`}
-        slug={slug}
-        config={config}
-        layer={layer}
-        readOnly={readOnly}
-        onSaved={() => setResolvedRefresh((n) => n + 1)}
-      />
-
-      {config.kind === "variable" && (
-        <Box sx={{ mt: 3, mb: 3 }}>
-          <Heading sx={{ fontSize: 2, mb: 2 }}>Resolved</Heading>
-          <ResolvedView
-            slug={slug}
-            config={config}
-            envs={envs}
-            initialEnv={layer === "base" ? undefined : layer}
-            refreshToken={resolvedRefresh}
-          />
-        </Box>
-      )}
-
+      {/* Version history for the selected environment layer */}
       <Box>
-        <Button variant="invisible" leadingVisual={GearIcon} onClick={() => setShowHistory((v) => !v)}>
-          {showHistory ? "Hide history" : "History & rollback"}
-        </Button>
-        {showHistory && (
-          <VersionHistory
-            key={`vh:${config.id}:${layer}:${reloadNonce}`}
-            slug={slug}
-            config={config}
-            layer={layer}
-            onRolledBack={() => setReloadNonce((n) => n + 1)}
-          />
-        )}
+        <Heading sx={{ fontSize: 2, mb: 2 }}>Version history</Heading>
+        <VersionHistory
+          key={`vh:${config.id}:${env}:${refresh}`}
+          slug={slug}
+          config={config}
+          layer={env}
+          onRolledBack={bump}
+        />
       </Box>
 
       {confirmDelete && (

@@ -2,25 +2,14 @@ import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { Box, Button, Flash, IconButton, Label, Spinner, Text, TextInput, Textarea } from "../../ui/primer";
 import { EyeClosedIcon, EyeIcon, LockIcon, TrashIcon } from "@primer/octicons-react";
 import { api, Config, Item } from "../../api";
+import { buildRows, MergedRow, RowState } from "../../lib/resolve";
 
 const keyRe = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
-// Row state machine for the inherited-aware editor (non-base layers overlay base):
-//   base       — an own row of the base layer (key editable)
-//   inherited  — tracking a base key, no layer row will be written (greyed)
-//   override   — a layer row that diverges from base (or an edited inherited key)
-//   new        — a layer-only key with no base default (key editable)
-//   tombstone  — a deleted=true layer row that unsets an inherited base key
-type RowState = "base" | "inherited" | "override" | "new" | "tombstone";
-
-interface Row {
-  key: string;
-  value: string;
-  is_secret: boolean;
+// Row = a merged row (the base⊕env state machine lives in lib/resolve) plus the
+// per-row reveal toggle, which is UI-only.
+interface Row extends MergedRow {
   reveal: boolean;
-  baseValue?: string; // base default when base defines this key
-  baseSecret?: boolean;
-  state: RowState;
 }
 
 interface BaseVal {
@@ -57,11 +46,7 @@ export default function KvEditor({ slug, config, layer, readOnly, onSaved }: KvE
       if (isBase) {
         const items = await api.getItems(slug, config.id, "base");
         setBaseMap(new Map());
-        setRows(
-          items
-            .filter((i) => !i.deleted)
-            .map((i) => ({ key: i.key, value: i.value, is_secret: i.is_secret, reveal: false, state: "base" as const })),
-        );
+        setRows(buildRows(items, [], true).map((r) => ({ ...r, reveal: false })));
         return;
       }
       const [baseItems, layerItems] = await Promise.all([
@@ -72,7 +57,7 @@ export default function KvEditor({ slug, config, layer, readOnly, onSaved }: KvE
         baseItems.filter((i) => !i.deleted).map((i) => [i.key, { value: i.value, is_secret: i.is_secret }]),
       );
       setBaseMap(bMap);
-      setRows(buildRows(bMap, layerItems));
+      setRows(buildRows(baseItems, layerItems, false).map((r) => ({ ...r, reveal: false })));
     };
     load()
       .catch((e: any) => setErr(e.message))
@@ -299,31 +284,6 @@ function SourceBadge({ state }: { state: RowState }) {
     default:
       return null;
   }
-}
-
-function buildRows(baseMap: Map<string, BaseVal>, layerItems: Item[]): Row[] {
-  const lMap = new Map(layerItems.map((i) => [i.key, i]));
-  const keys = new Set<string>([...baseMap.keys(), ...layerItems.map((i) => i.key)]);
-  const rows: Row[] = [];
-  for (const key of keys) {
-    const b = baseMap.get(key);
-    const l = lMap.get(key);
-    if (l && l.deleted) {
-      if (b) rows.push({ key, value: "", is_secret: false, reveal: false, baseValue: b.value, baseSecret: b.is_secret, state: "tombstone" });
-      continue; // a tombstone with no base key is meaningless
-    }
-    if (l) {
-      rows.push(
-        b
-          ? { key, value: l.value, is_secret: l.is_secret, reveal: false, baseValue: b.value, baseSecret: b.is_secret, state: "override" }
-          : { key, value: l.value, is_secret: l.is_secret, reveal: false, state: "new" },
-      );
-    } else if (b) {
-      rows.push({ key, value: b.value, is_secret: b.is_secret, reveal: false, baseValue: b.value, baseSecret: b.is_secret, state: "inherited" });
-    }
-  }
-  rows.sort((a, b) => a.key.localeCompare(b.key));
-  return rows;
 }
 
 function secretMap(rows: Row[]): Map<string, boolean> {
