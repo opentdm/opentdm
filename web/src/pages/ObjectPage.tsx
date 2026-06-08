@@ -7,7 +7,6 @@ import {
   Breadcrumbs,
   Button,
   ConfirmationDialog,
-  Dialog,
   Flash,
   FormControl,
   Heading,
@@ -15,9 +14,8 @@ import {
   Spinner,
   Text,
   TextInput,
-  Token,
 } from "../ui/primer";
-import { EyeIcon, GearIcon, KebabHorizontalIcon, PencilIcon, TrashIcon } from "@primer/octicons-react";
+import { GearIcon, KebabHorizontalIcon, PencilIcon, TrashIcon } from "@primer/octicons-react";
 import { api, canWrite, Config, Environment } from "../api";
 import EditorDispatch from "../components/editors/EditorDispatch";
 import ResolvedView from "../components/ResolvedView";
@@ -31,9 +29,8 @@ export default function ObjectPage() {
   const [role, setRole] = useState<string | undefined>(undefined);
   const [layer, setLayer] = useState("base");
   const [editing, setEditing] = useState(false);
-  const [resolveOpen, setResolveOpen] = useState(false);
-  const [showResolved, setShowResolved] = useState(false);
   const [reloadNonce, setReloadNonce] = useState(0);
+  const [resolvedRefresh, setResolvedRefresh] = useState(0);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [err, setErr] = useState("");
@@ -85,41 +82,26 @@ export default function ObjectPage() {
         <Heading sx={{ fontSize: 4 }}>{config.name}</Heading>
         <Label variant="secondary">{config.format}</Label>
         <Label variant={config.kind === "file" ? "accent" : "default"}>{config.kind}</Label>
-        {config.tags.map((t) => (
-          <Token key={t} text={t} />
-        ))}
         <Box sx={{ flex: 1 }} />
-        {(config.kind === "variable" || !readOnly) && (
+        {!readOnly && (
           <ActionMenu>
             <ActionMenu.Anchor>
               <Button leadingVisual={KebabHorizontalIcon}>Object</Button>
             </ActionMenu.Anchor>
             <ActionMenu.Overlay width="small">
               <ActionList>
-                {config.kind === "variable" && (
-                  <ActionList.Item onSelect={() => setResolveOpen(true)}>
-                    <ActionList.LeadingVisual>
-                      <EyeIcon />
-                    </ActionList.LeadingVisual>
-                    View resolved
-                  </ActionList.Item>
-                )}
-                {!readOnly && (
-                  <ActionList.Item onSelect={() => setEditing((v) => !v)}>
-                    <ActionList.LeadingVisual>
-                      <PencilIcon />
-                    </ActionList.LeadingVisual>
-                    Edit name & tags
-                  </ActionList.Item>
-                )}
-                {!readOnly && (
-                  <ActionList.Item variant="danger" onSelect={() => setConfirmDelete(true)}>
-                    <ActionList.LeadingVisual>
-                      <TrashIcon />
-                    </ActionList.LeadingVisual>
-                    Delete object
-                  </ActionList.Item>
-                )}
+                <ActionList.Item onSelect={() => setEditing((v) => !v)}>
+                  <ActionList.LeadingVisual>
+                    <PencilIcon />
+                  </ActionList.LeadingVisual>
+                  Edit name
+                </ActionList.Item>
+                <ActionList.Item variant="danger" onSelect={() => setConfirmDelete(true)}>
+                  <ActionList.LeadingVisual>
+                    <TrashIcon />
+                  </ActionList.LeadingVisual>
+                  Delete object
+                </ActionList.Item>
               </ActionList>
             </ActionMenu.Overlay>
           </ActionMenu>
@@ -162,18 +144,19 @@ export default function ObjectPage() {
         config={config}
         layer={layer}
         readOnly={readOnly}
+        onSaved={() => setResolvedRefresh((n) => n + 1)}
       />
 
       {config.kind === "variable" && (
-        <Box>
-          <Button variant="invisible" leadingVisual={EyeIcon} onClick={() => setShowResolved((v) => !v)}>
-            {showResolved ? "Hide resolved" : "Show resolved"}
-          </Button>
-          {showResolved && (
-            <Box sx={{ mt: 2 }}>
-              <ResolvedView slug={slug} config={config} envs={envs} initialEnv={layer === "base" ? undefined : layer} />
-            </Box>
-          )}
+        <Box sx={{ mt: 3, mb: 3 }}>
+          <Heading sx={{ fontSize: 2, mb: 2 }}>Resolved</Heading>
+          <ResolvedView
+            slug={slug}
+            config={config}
+            envs={envs}
+            initialEnv={layer === "base" ? undefined : layer}
+            refreshToken={resolvedRefresh}
+          />
         </Box>
       )}
 
@@ -191,12 +174,6 @@ export default function ObjectPage() {
           />
         )}
       </Box>
-
-      {resolveOpen && (
-        <Dialog title={`Resolved — ${config.name}`} width="large" onClose={() => setResolveOpen(false)}>
-          <ResolvedView slug={slug} config={config} envs={envs} initialEnv={layer === "base" ? undefined : layer} />
-        </Dialog>
-      )}
 
       {confirmDelete && (
         <ConfirmationDialog
@@ -224,7 +201,6 @@ function SettingsPanel({
   onSaved: (c: Config) => void;
 }) {
   const [name, setName] = useState(config.name);
-  const [tags, setTags] = useState(config.tags.join(", "));
   const [sortOrder, setSortOrder] = useState(String(config.sort_order));
   const [description, setDescription] = useState(config.description);
   const [err, setErr] = useState("");
@@ -237,10 +213,6 @@ function SettingsPanel({
         name: name.trim() || config.name,
         sort_order: Number(sortOrder) || 0,
         description,
-        tags: tags
-          .split(",")
-          .map((t) => t.trim())
-          .filter(Boolean),
       });
       onSaved(updated);
     } catch (e: any) {
@@ -259,11 +231,6 @@ function SettingsPanel({
         <FormControl sx={{ width: 120 }}>
           <FormControl.Label>Sort order</FormControl.Label>
           <TextInput type="number" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} />
-        </FormControl>
-        <FormControl sx={{ flex: 1, minWidth: 200 }}>
-          <FormControl.Label>Tags</FormControl.Label>
-          <TextInput block value={tags} onChange={(e) => setTags(e.target.value)} placeholder="prod, payments" />
-          <FormControl.Caption>Comma-separated.</FormControl.Caption>
         </FormControl>
       </Box>
       <FormControl>

@@ -19,8 +19,8 @@ interface EnvironmentManagerProps {
 }
 
 // Manages a project's ordered, named environment layers: add / rename / reorder
-// / set-default / delete. IDs are stable; slugs are renameable (consumers that
-// reference a slug — /resolve, CLI, Actions — must be updated on rename).
+// / set-default / delete. IDs and slugs are stable (consumers reference the slug);
+// renaming changes only the display name.
 export default function EnvironmentManager({ slug }: EnvironmentManagerProps) {
   const [envs, setEnvs] = useState<Environment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -188,24 +188,19 @@ function EnvEditRow({
   onCancel,
 }: {
   env: Environment;
-  onSave: (patch: { slug: string; name: string }) => Promise<void>;
+  onSave: (patch: { name: string }) => Promise<void>;
   onCancel: () => void;
 }) {
   const [name, setName] = useState(env.name);
-  const [slug, setSlug] = useState(env.slug);
 
   return (
     <Box sx={{ p: 3, display: "flex", gap: 2, alignItems: "flex-end", flexWrap: "wrap", bg: "canvas.subtle" }}>
       <FormControl>
         <FormControl.Label>Name</FormControl.Label>
         <TextInput value={name} onChange={(e) => setName(e.target.value)} />
+        <FormControl.Caption>The slug ({env.slug}) is a fixed consumer identifier.</FormControl.Caption>
       </FormControl>
-      <FormControl>
-        <FormControl.Label>Slug</FormControl.Label>
-        <TextInput value={slug} onChange={(e) => setSlug(e.target.value)} sx={{ fontFamily: "mono" }} />
-        <FormControl.Caption>Renaming breaks consumers that reference this slug.</FormControl.Caption>
-      </FormControl>
-      <Button variant="primary" onClick={() => void onSave({ name: name.trim() || env.name, slug: slug.trim() || env.slug })}>
+      <Button variant="primary" onClick={() => void onSave({ name: name.trim() || env.name })}>
         Save
       </Button>
       <Button onClick={onCancel}>Cancel</Button>

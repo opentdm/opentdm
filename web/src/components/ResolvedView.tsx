@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Box, Button, Checkbox, Flash, FormControl, Select } from "../ui/primer";
+import { Box, Button, Checkbox, Flash, FormControl, Select, Text } from "../ui/primer";
 import { CopyIcon } from "@primer/octicons-react";
 import { api, Config, Environment } from "../api";
 
@@ -10,13 +10,14 @@ interface ResolvedViewProps {
   config: Config;
   envs: Environment[];
   initialEnv?: string;
+  refreshToken?: number; // bump to force a re-resolve (e.g. after an edit saves)
 }
 
 // ResolvedView renders a single config's resolved env (base → env override) for a
 // chosen environment + format, hitting the per-file resolve endpoint. Secrets are
 // masked by default. Used both inside the object page and in the "View resolved"
 // modal — it auto-resolves on mount and whenever the selectors change.
-export default function ResolvedView({ slug, config, envs, initialEnv }: ResolvedViewProps) {
+export default function ResolvedView({ slug, config, envs, initialEnv, refreshToken }: ResolvedViewProps) {
   const defaultEnv = initialEnv || envs.find((e) => e.is_default)?.slug || envs[0]?.slug || "";
   const [env, setEnv] = useState(defaultEnv);
   const [format, setFormat] = useState("dotenv");
@@ -25,7 +26,6 @@ export default function ResolvedView({ slug, config, envs, initialEnv }: Resolve
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [nonce, setNonce] = useState(0);
 
   useEffect(() => {
     if (!env) return;
@@ -50,7 +50,7 @@ export default function ResolvedView({ slug, config, envs, initialEnv }: Resolve
     return () => {
       cancelled = true;
     };
-  }, [slug, config.id, env, format, showSecrets, nonce]);
+  }, [slug, config.id, env, format, showSecrets, refreshToken]);
 
   async function copy() {
     try {
@@ -88,9 +88,7 @@ export default function ResolvedView({ slug, config, envs, initialEnv }: Resolve
           <Checkbox checked={showSecrets} onChange={(e) => setShowSecrets(e.target.checked)} />
           <FormControl.Label>Show secrets</FormControl.Label>
         </FormControl>
-        <Button variant="primary" onClick={() => setNonce((n) => n + 1)} disabled={loading || !env}>
-          {loading ? "Resolving…" : "Resolve"}
-        </Button>
+        {loading && <Text sx={{ color: "fg.muted", fontSize: 0 }}>Resolving…</Text>}
       </Box>
       {err && (
         <Flash variant="danger" sx={{ mb: 2 }}>
