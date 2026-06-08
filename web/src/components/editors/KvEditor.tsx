@@ -33,9 +33,10 @@ interface KvEditorProps {
   config: Config;
   layer: string;
   readOnly?: boolean;
+  onSaved?: () => void;
 }
 
-export default function KvEditor({ slug, config, layer, readOnly }: KvEditorProps) {
+export default function KvEditor({ slug, config, layer, readOnly, onSaved }: KvEditorProps) {
   const isBase = layer === "base";
   const [rows, setRows] = useState<Row[]>([]);
   const [baseMap, setBaseMap] = useState<Map<string, BaseVal>>(new Map());
@@ -172,6 +173,7 @@ export default function KvEditor({ slug, config, layer, readOnly }: KvEditorProp
       setMsg(`Saved ${layer}.`);
       setRaw(false);
       setReloadNonce((n) => n + 1); // refetch so origins/badges re-settle
+      onSaved?.(); // let siblings (resolved view) refresh — base may have changed too
     } catch (e: any) {
       setErr(e.message);
     }

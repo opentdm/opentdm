@@ -14,7 +14,6 @@ import {
   Spinner,
   Text,
   TextInput,
-  Token,
 } from "../ui/primer";
 import { EyeIcon, FileIcon, GearIcon, KebabHorizontalIcon, KeyIcon, PlusIcon, PulseIcon } from "@primer/octicons-react";
 import { api, canWrite, Config, Environment, Project } from "../api";
@@ -103,7 +102,6 @@ function ObjectsSection({
   const nav = useNavigate();
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
-  const [tags, setTags] = useState("");
   const [err, setErr] = useState("");
   const [resolveTarget, setResolveTarget] = useState<Config | null>(null);
 
@@ -116,13 +114,8 @@ function ObjectsSection({
         kind: "variable",
         format: "env",
         name,
-        tags: tags
-          .split(",")
-          .map((t) => t.trim())
-          .filter(Boolean),
       });
       setName("");
-      setTags("");
       setAdding(false);
       onChange();
       if (created?.id) nav(`/projects/${slug}/configs/${created.id}`);
@@ -177,9 +170,6 @@ function ObjectsSection({
               <Box sx={{ color: "fg.muted", display: "flex" }}>{c.kind === "file" ? <FileIcon /> : <KeyIcon />}</Box>
               <Text sx={{ fontWeight: "bold" }}>{c.name}</Text>
               <Label variant="secondary">{c.format}</Label>
-              {c.tags.map((t) => (
-                <Token key={t} text={t} />
-              ))}
             </Box>
             {c.kind === "variable" && (
               <Box sx={{ pr: 2 }}>
@@ -210,13 +200,8 @@ function ObjectsSection({
             {err && <Flash variant="danger">{err}</Flash>}
             <FormControl>
               <FormControl.Label>Name</FormControl.Label>
-              <TextInput block value={name} onChange={(e) => setName(e.target.value)} placeholder="boss29 or m88" />
+              <TextInput block value={name} onChange={(e) => setName(e.target.value)} autoFocus />
               <FormControl.Caption>An env (.env-style) variable bundle.</FormControl.Caption>
-            </FormControl>
-            <FormControl>
-              <FormControl.Label>Tags</FormControl.Label>
-              <TextInput block value={tags} onChange={(e) => setTags(e.target.value)} placeholder="prod, payments" />
-              <FormControl.Caption>Comma-separated, optional.</FormControl.Caption>
             </FormControl>
             <Box sx={{ display: "flex", gap: 2, justifyContent: "flex-end" }}>
               <Button type="button" onClick={() => setAdding(false)}>

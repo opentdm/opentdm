@@ -112,7 +112,6 @@ export interface Config {
   sort_order: number;
   description: string;
   is_secret: boolean;
-  tags: string[];
 }
 export interface Item {
   key: string;
@@ -268,7 +267,7 @@ export const api = {
     request<AdminUser>("PATCH", `/users/${id}`, body),
 
   getConfig: (slug: string, id: string) => request<Config>("GET", `/projects/${slug}/configs/${id}`),
-  updateConfig: (slug: string, id: string, body: { name: string; sort_order: number; description: string; tags: string[] }) =>
+  updateConfig: (slug: string, id: string, body: { name: string; sort_order: number; description: string }) =>
     request<Config>("PATCH", `/projects/${slug}/configs/${id}`, body),
   archiveConfig: (slug: string, id: string) => request<unknown>("DELETE", `/projects/${slug}/configs/${id}`),
 

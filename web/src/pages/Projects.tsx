@@ -5,7 +5,6 @@ import { api, Project } from "../api";
 
 export default function Projects() {
   const [projects, setProjects] = useState<Project[]>([]);
-  const [slug, setSlug] = useState("");
   const [name, setName] = useState("");
   const [err, setErr] = useState("");
   const [showNew, setShowNew] = useState(false);
@@ -25,8 +24,7 @@ export default function Projects() {
     e.preventDefault();
     setErr("");
     try {
-      await api.post("/projects", { slug, name });
-      setSlug("");
+      await api.post("/projects", { name });
       setName("");
       setShowNew(false);
       await load();
@@ -55,12 +53,9 @@ export default function Projects() {
           sx={{ display: "grid", gap: 2, p: 3, mb: 3, borderWidth: 1, borderStyle: "solid", borderColor: "border.default", borderRadius: 2 }}
         >
           <FormControl>
-            <FormControl.Label>Slug</FormControl.Label>
-            <TextInput block value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="payments" />
-          </FormControl>
-          <FormControl>
             <FormControl.Label>Name</FormControl.Label>
-            <TextInput block value={name} onChange={(e) => setName(e.target.value)} placeholder="Payments" />
+            <TextInput block value={name} onChange={(e) => setName(e.target.value)} placeholder="Payments" autoFocus />
+            <FormControl.Caption>The URL slug is derived from the name.</FormControl.Caption>
           </FormControl>
           <Box>
             <Button type="submit" variant="primary">
