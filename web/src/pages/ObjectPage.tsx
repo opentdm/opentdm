@@ -15,7 +15,7 @@ import {
   Text,
   TextInput,
 } from "../ui/primer";
-import { CopyIcon, EyeClosedIcon, EyeIcon, KebabHorizontalIcon, PencilIcon, TrashIcon } from "@primer/octicons-react";
+import { ColumnsIcon, CopyIcon, EyeClosedIcon, EyeIcon, KebabHorizontalIcon, PencilIcon, TrashIcon } from "@primer/octicons-react";
 import { api, canWrite, Config, Environment, Project } from "../api";
 import EditorDispatch from "../components/editors/EditorDispatch";
 import VersionHistory from "../components/VersionHistory";
@@ -23,6 +23,7 @@ import FileTree from "../components/filebrowser/FileTree";
 import BranchEnvMenu from "../components/filebrowser/BranchEnvMenu";
 import CodeFileView from "../components/filebrowser/CodeFileView";
 import DeltaBadge from "../components/filebrowser/DeltaBadge";
+import SplitCompare, { Pane } from "../components/filebrowser/SplitCompare";
 
 // The object page is a GitHub-style file browser: the project's objects are a file
 // tree on the left; the right shows the selected object resolved for a chosen
@@ -38,6 +39,8 @@ export default function ObjectPage() {
   const [env, setEnv] = useState("base");
   const [editing, setEditing] = useState(false);
   const [reveal, setReveal] = useState(false);
+  const [split, setSplit] = useState(false);
+  const [panes, setPanes] = useState<Pane[]>([{ env: "base" }, { env: "base" }]);
   const [refresh, setRefresh] = useState(0);
   const [copyText, setCopyText] = useState("");
   const [copied, setCopied] = useState(false);
@@ -60,6 +63,7 @@ export default function ObjectPage() {
   useEffect(() => {
     setEditing(false);
     setReveal(false);
+    setSplit(false);
     api
       .getConfig(slug, configId)
       .then(setConfig)
@@ -87,6 +91,19 @@ export default function ObjectPage() {
   }
 
   const bump = () => setRefresh((n) => n + 1);
+
+  // Enter split with two panes (the current env + the first other one); exit returns
+  // to the single view.
+  function toggleSplit() {
+    if (split) {
+      setSplit(false);
+      return;
+    }
+    setEditing(false);
+    const other = ["base", ...envs.map((e) => e.slug)].find((e) => e !== env) || "base";
+    setPanes([{ env }, { env: other }]);
+    setSplit(true);
+  }
 
   if (!config || !project) {
     return err ? <Flash variant="danger">{err}</Flash> : <Spinner />;
@@ -160,14 +177,11 @@ export default function ObjectPage() {
             <span className="otdm-fb-crumb">
               <b>{config.name}</b>
             </span>
-            <BranchEnvMenu value={env} envs={envs} onChange={setEnv} />
-            <DeltaBadge slug={slug} config={config} env={env} refreshToken={refresh} />
+            {!split && <BranchEnvMenu value={env} envs={envs} onChange={setEnv} />}
+            {!split && <DeltaBadge slug={slug} config={config} env={env} refreshToken={refresh} />}
             <Box sx={{ flex: 1 }} />
-            {!readOnly && (
-              <Button
-                leadingVisual={editing ? EyeIcon : PencilIcon}
-                onClick={() => setEditing((v) => !v)}
-              >
+            {!split && !readOnly && (
+              <Button leadingVisual={editing ? EyeIcon : PencilIcon} onClick={() => setEditing((v) => !v)}>
                 {editing ? "View" : "Edit"}
               </Button>
             )}
@@ -176,14 +190,27 @@ export default function ObjectPage() {
                 {reveal ? "Hide" : "Reveal"}
               </Button>
             )}
-            {!editing && (
+            {!split && !editing && (
               <Button leadingVisual={CopyIcon} onClick={copy}>
                 {copied ? "Copied" : "Copy"}
               </Button>
             )}
+            <Button leadingVisual={ColumnsIcon} variant={split ? "primary" : "default"} onClick={toggleSplit}>
+              {split ? "Exit split" : "Split"}
+            </Button>
           </div>
           <div className="otdm-fb-body">
-            {editing ? (
+            {split ? (
+              <SplitCompare
+                slug={slug}
+                config={config}
+                envs={envs}
+                panes={panes}
+                setPanes={setPanes}
+                reveal={reveal}
+                refreshToken={refresh}
+              />
+            ) : editing ? (
               <Box sx={{ p: 3 }}>
                 <EditorDispatch
                   key={`${config.id}:${env}:${refresh}`}
