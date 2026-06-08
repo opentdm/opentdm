@@ -1,0 +1,59 @@
+/* Add-object dialog dropzone + uploaded-file chip. className CSS (Primer
+   functional vars) for the dashed border, drag-over state, and hover the
+   sx-compat shim can't express. */
+
+.otdm-dropzone {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 22px 16px;
+  border: 1px dashed var(--borderColor-default);
+  border-radius: 8px;
+  background: var(--bgColor-muted);
+  color: var(--fgColor-muted);
+  cursor: pointer;
+  text-align: center;
+}
+.otdm-dropzone:hover,
+.otdm-dropzone.over {
+  border-color: var(--fgColor-accent);
+  background: var(--bgColor-accent-muted);
+}
+.otdm-dz-up {
+  display: flex;
+  color: var(--fgColor-muted);
+}
+.otdm-dropzone:hover .otdm-dz-up,
+.otdm-dropzone.over .otdm-dz-up {
+  color: var(--fgColor-accent);
+}
+.otdm-dz-main {
+  font-size: 13px;
+  color: var(--fgColor-default);
+}
+.otdm-dz-sub {
+  font-size: 11.5px;
+  font-family: var(--fontStack-monospace, ui-monospace, SFMono-Regular, monospace);
+}
+
+.otdm-dz-file {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--borderColor-default);
+  border-radius: 8px;
+  background: var(--bgColor-default);
+}
+.otdm-dz-ico {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: 6px;
+  color: var(--fgColor-accent);
+  background: var(--bgColor-accent-muted);
+}

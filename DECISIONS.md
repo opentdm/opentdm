@@ -39,10 +39,12 @@
 - **The whole-project `/resolve` is retained** for v0.1.0 back-compat (CLI default, GitHub Action, SDK).
   The cross-config merge + `meta.collisions` in *Merge semantics* apply **only** to that endpoint; its
   full retirement is a deliberate future-major follow-up once consumers move to `--config`.
-- **Env-only creation.** Only `variable/env` configs may be **created** (server guard in
-  `app.CreateConfig` + the web UI). `properties`/`secret`/`json`/`csv`/`xml` creation is **disabled, not
-  removed** — the format enum, validation maps, DB CHECK constraint, parsers, and existing configs stay
-  intact and fully readable/resolvable. Flip `envOnlyMode` to re-enable.
+- **Env-only creation (lifted 2026-06).** Creation was briefly gated to `variable/env` only; that gate
+  (`envOnlyMode` in `app.CreateConfig`) is now **off** to support the web Add-object file-upload flow —
+  `.env` uploads create `variable/env` bundles, `json`/`csv`/`xml` uploads create file configs. The
+  `variableFormats`/`fileFormats` maps and the DB CHECK constraint remain the real validation guards.
+  `properties`/`secret` stay creatable via the API but are not yet surfaced in the upload UI (their key
+  rules differ from the env `ValidKey` grammar).
 - **Clone removed.** Per-object and bulk environment clone (endpoints, handlers, app methods, audit
   labels, e2e) are deleted; no schema/data impact (clone only ever wrote ordinary `config_items`). The
   inherited-by-default editor (base overlaid into each environment) replaces its use case.

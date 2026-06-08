@@ -1,5 +1,5 @@
-import { FormEvent, useEffect, useState } from "react";
-import { Link as RouterLink, useNavigate, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link as RouterLink, useParams } from "react-router-dom";
 import {
   ActionList,
   ActionMenu,
@@ -7,17 +7,16 @@ import {
   Button,
   Dialog,
   Flash,
-  FormControl,
   Heading,
   IconButton,
   Label,
   Spinner,
   Text,
-  TextInput,
 } from "../ui/primer";
 import { EyeIcon, FileIcon, GearIcon, KebabHorizontalIcon, KeyIcon, PlusIcon, PulseIcon } from "@primer/octicons-react";
 import { api, canWrite, Config, Environment, Project } from "../api";
 import ResolvedView from "../components/ResolvedView";
+import AddObjectDialog from "../components/AddObjectDialog";
 
 export default function ProjectPage() {
   const { slug = "" } = useParams();
@@ -99,30 +98,8 @@ function ObjectsSection({
   canWrite: boolean;
   onChange: () => void;
 }) {
-  const nav = useNavigate();
   const [adding, setAdding] = useState(false);
-  const [name, setName] = useState("");
-  const [err, setErr] = useState("");
   const [resolveTarget, setResolveTarget] = useState<Config | null>(null);
-
-  async function createConfig(e: FormEvent) {
-    e.preventDefault();
-    setErr("");
-    try {
-      // Env-only: every new object is a variable/env bundle.
-      const created = await api.post<Config>(`/projects/${slug}/configs`, {
-        kind: "variable",
-        format: "env",
-        name,
-      });
-      setName("");
-      setAdding(false);
-      onChange();
-      if (created?.id) nav(`/projects/${slug}/configs/${created.id}`);
-    } catch (e: any) {
-      setErr(e.message);
-    }
-  }
 
   return (
     <Box>
@@ -194,26 +171,7 @@ function ObjectsSection({
         ))}
       </Box>
 
-      {adding && (
-        <Dialog title="Add object" onClose={() => setAdding(false)}>
-          <Box as="form" onSubmit={createConfig} sx={{ display: "grid", gap: 3 }}>
-            {err && <Flash variant="danger">{err}</Flash>}
-            <FormControl>
-              <FormControl.Label>Name</FormControl.Label>
-              <TextInput block value={name} onChange={(e) => setName(e.target.value)} autoFocus />
-              <FormControl.Caption>An env (.env-style) variable bundle.</FormControl.Caption>
-            </FormControl>
-            <Box sx={{ display: "flex", gap: 2, justifyContent: "flex-end" }}>
-              <Button type="button" onClick={() => setAdding(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" variant="primary">
-                Add object
-              </Button>
-            </Box>
-          </Box>
-        </Dialog>
-      )}
+      {adding && <AddObjectDialog slug={slug} onClose={() => setAdding(false)} onChange={onChange} />}
 
       {resolveTarget && (
         <Dialog title={`Resolved — ${resolveTarget.name}`} width="large" onClose={() => setResolveTarget(null)}>

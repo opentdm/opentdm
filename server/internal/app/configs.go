@@ -19,12 +19,13 @@ var fileFormats = map[string]bool{
 	model.FormatJSON: true, model.FormatCSV: true, model.FormatXML: true,
 }
 
-// envOnlyMode gates config CREATION to variable/env configs for this release. It
-// is a reversible product flag — set it false to re-enable properties/secret and
-// file (json/csv/xml) configs. Existing non-env configs stay fully
-// readable/resolvable; the format-enum maps and the DB CHECK constraint are left
-// intact on purpose so historical data keeps validating.
-const envOnlyMode = true
+// envOnlyMode gates config CREATION to variable/env configs. It is a reversible
+// product flag — false re-enables properties/secret and file (json/csv/xml)
+// configs. Re-opened for the file-upload create flow (the web Add-object
+// dropzone): .env uploads create variable/env bundles, json/csv/xml uploads
+// create file configs. The format-enum maps and the DB CHECK constraint are the
+// real guards; this flag only narrows what the create endpoint accepts.
+const envOnlyMode = false
 
 // CreateConfig creates a config after validating the kind/format pairing.
 func (s *Service) CreateConfig(ctx context.Context, creator model.User, projectID uuid.UUID, c model.Config) (model.Config, error) {
