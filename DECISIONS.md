@@ -31,6 +31,22 @@
 - Last-writer-wins per key; cross-config collisions resolved by `sort_order` (never name) + reported.
 - `KEY=` is present-empty; absent key is omitted; `deleted=true` removes an inherited key.
 
+## Per-file resolution & env-only scope (2026-06)
+- **Per-file resolve is the primary consumption model.** A single config is resolved on its own
+  (base → env override, tombstones) and rendered via codec — see the per-file resolve path in
+  *Canonical names*. There is **no cross-config merge and never any collisions** on this path; each
+  object is an independent `.env` retrieved by name (`opentdm pull --config NAME`).
+- **The whole-project `/resolve` is retained** for v0.1.0 back-compat (CLI default, GitHub Action, SDK).
+  The cross-config merge + `meta.collisions` in *Merge semantics* apply **only** to that endpoint; its
+  full retirement is a deliberate future-major follow-up once consumers move to `--config`.
+- **Env-only creation.** Only `variable/env` configs may be **created** (server guard in
+  `app.CreateConfig` + the web UI). `properties`/`secret`/`json`/`csv`/`xml` creation is **disabled, not
+  removed** — the format enum, validation maps, DB CHECK constraint, parsers, and existing configs stay
+  intact and fully readable/resolvable. Flip `envOnlyMode` to re-enable.
+- **Clone removed.** Per-object and bulk environment clone (endpoints, handlers, app methods, audit
+  labels, e2e) are deleted; no schema/data impact (clone only ever wrote ordinary `config_items`). The
+  inherited-by-default editor (base overlaid into each environment) replaces its use case.
+
 ## Encryption (reconciled + hardened)
 - master key (KEK, `OPENTDM_MASTER_KEY`, base64 32B) → per-project DEK (wrapped on `projects`) →
   per-value/blob ciphertext. KMS providers are interface stubs in v1.
@@ -54,7 +70,7 @@
 
 ## Authorization (per-project roles + membership)
 - Roles per project: **owner > editor > viewer** (`project_members(project_id,user_id,role)`, compared via
-  `model.RoleRank`). Viewer reads; editor reads+writes configs/values/envs/clone/tokens; owner also manages
+  `model.RoleRank`). Viewer reads; editor reads+writes configs/values/envs/tokens; owner also manages
   members + invitations. Instance admins (`users.is_admin`) **bypass membership** as implicit owners everywhere.
 - Single choke point: `httpapi.resolveProject` (viewer) / `resolveProjectRole(minRole)` gate every
   `/projects/{project}/*` management route. **Non-member → 404** (existence hidden, GitHub-style);
@@ -78,7 +94,8 @@
 | Token prefix | `otdm_` |
 | Env var prefix | `OPENTDM_` (every var) |
 | Response envelope | `{"data":…,"error":null,"meta":{…}}`; errors RFC 9457 problem+json |
-| Resolve path | `GET /api/v1/projects/{project}/resolve?env=staging&format=…` |
+| Resolve path (whole-project) | `GET /api/v1/projects/{project}/resolve?env=staging&format=…` (legacy cross-config merge) |
+| Resolve path (per-file) | `GET /api/v1/projects/{project}/configs/{config}/resolve?env=…&format=…` (single config, no collisions) |
 | Migrations dir | `server/internal/store/migrations/` (embedded) |
 | Seeded envs | `development`, `staging`, `production` (ranks 10/20/30) |
 | Core env vars | `DATABASE_URL`, `OPENTDM_MASTER_KEY`, `OPENTDM_SESSION_SECRET`, `OPENTDM_TOKEN_PEPPER` |

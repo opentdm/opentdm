@@ -16,6 +16,7 @@ import (
 
 	"github.com/opentdm/opentdm/server/internal/app"
 	"github.com/opentdm/opentdm/server/internal/crypto"
+	"github.com/opentdm/opentdm/server/internal/model"
 	"github.com/opentdm/opentdm/server/internal/store"
 )
 
@@ -161,8 +162,21 @@ func TestE2E_Phase2(t *testing.T) {
 	}
 
 	// ---- File config: round-trip + validation ----
-	_, b = do("POST", "/projects/p2/configs", map[string]any{"kind": "file", "format": "json", "name": "seed"})
-	fileCfg := dataID(b)
+	// Env-only mode blocks creating file configs through the product API, so seed
+	// them directly via the store — the blob round-trip + validation machinery they
+	// exercise remains in the codebase.
+	seedFileConfig := func(name, format string) string {
+		proj, err := st.Q().GetProjectBySlug(ctx, "p2")
+		if err != nil {
+			t.Fatalf("get project: %v", err)
+		}
+		c, err := st.Q().CreateConfig(ctx, model.Config{ProjectID: proj.ID, Kind: model.KindFile, Format: format, Name: name})
+		if err != nil {
+			t.Fatalf("seed file config %s: %v", name, err)
+		}
+		return c.ID.String()
+	}
+	fileCfg := seedFileConfig("seed", "json")
 	if code, body := rawReq("PUT", "/projects/p2/configs/"+fileCfg+"/blob?env=staging", "application/json", []byte(`{"x":1}`)); code != 200 {
 		t.Fatalf("put blob: %d %s", code, body)
 	}
@@ -173,8 +187,7 @@ func TestE2E_Phase2(t *testing.T) {
 		t.Errorf("invalid JSON should be 422, got %d", code)
 	}
 	// XXE in an xml file config must be rejected.
-	_, b = do("POST", "/projects/p2/configs", map[string]any{"kind": "file", "format": "xml", "name": "doc"})
-	xmlCfg := dataID(b)
+	xmlCfg := seedFileConfig("doc", "xml")
 	xxe := `<?xml version="1.0"?><!DOCTYPE foo [<!ENTITY x SYSTEM "file:///etc/passwd">]><foo>&x;</foo>`
 	if code, _ := rawReq("PUT", "/projects/p2/configs/"+xmlCfg+"/blob?env=base", "application/xml", []byte(xxe)); code != 422 {
 		t.Errorf("XXE payload should be 422, got %d", code)

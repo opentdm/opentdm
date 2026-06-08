@@ -132,6 +132,54 @@ func TestMerge_EqualSortOrderTiebreakByName(t *testing.T) {
 	}
 }
 
+func TestResolveOne_BaseOverrideTombstone(t *testing.T) {
+	in := ConfigInput{
+		ConfigName: "app",
+		SortOrder:  10,
+		Base: []Variable{
+			{Key: "PORT", Value: "3000"},
+			{Key: "LOG", Value: "info"},
+			{Key: "DEBUG", Value: "true"},
+		},
+		Override: []Variable{
+			{Key: "LOG", Value: "debug"},  // overrides base
+			{Key: "DEBUG", Deleted: true}, // tombstone unsets the inherited base key
+			{Key: "EXTRA", Value: "x"},    // env-only key
+		},
+	}
+	r := ResolveOne(in)
+
+	// A single config cannot collide with itself.
+	if len(r.Collisions) != 0 {
+		t.Fatalf("ResolveOne must not report collisions, got %d", len(r.Collisions))
+	}
+	want := map[string]string{"PORT": "3000", "LOG": "debug", "EXTRA": "x"} // DEBUG unset
+	if got := asMap(r); !reflect.DeepEqual(got, want) {
+		t.Fatalf("got %v want %v", got, want)
+	}
+	// Variables come out sorted by key.
+	var keys []string
+	for _, v := range r.Variables {
+		keys = append(keys, v.Key)
+	}
+	if !reflect.DeepEqual(keys, []string{"EXTRA", "LOG", "PORT"}) {
+		t.Fatalf("ResolveOne keys not sorted: %v", keys)
+	}
+	// Provenance is preserved (same as the whole-project path).
+	for _, v := range r.Variables {
+		switch v.Key {
+		case "PORT":
+			if v.Source != "base" {
+				t.Errorf("PORT source = %q, want base", v.Source)
+			}
+		case "LOG":
+			if v.Source != "override" {
+				t.Errorf("LOG source = %q, want override", v.Source)
+			}
+		}
+	}
+}
+
 func TestMerge_NoCrossCollisionWhenSameConfigOverridesBase(t *testing.T) {
 	// base+override within the SAME config is not a "collision".
 	r := Merge([]ConfigInput{{

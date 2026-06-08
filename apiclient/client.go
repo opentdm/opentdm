@@ -57,10 +57,20 @@ type ResolveResult struct {
 	Collisions  int
 }
 
-// resolveGET issues an authenticated GET to the resolve endpoint and returns
+// projectResolvePath is the whole-project (cross-config merge) resolve path.
+func projectResolvePath(project string) string {
+	return fmt.Sprintf("/api/v1/projects/%s/resolve", url.PathEscape(project))
+}
+
+// configResolvePath is the per-file (single config) resolve path.
+func configResolvePath(project, config string) string {
+	return fmt.Sprintf("/api/v1/projects/%s/configs/%s/resolve", url.PathEscape(project), url.PathEscape(config))
+}
+
+// resolveGET issues an authenticated GET to a resolve endpoint path and returns
 // the raw body, headers, and status.
-func (c *Client) resolveGET(ctx context.Context, project string, q url.Values) ([]byte, http.Header, int, error) {
-	endpoint := fmt.Sprintf("%s/api/v1/projects/%s/resolve?%s", c.Host, url.PathEscape(project), q.Encode())
+func (c *Client) resolveGET(ctx context.Context, path string, q url.Values) ([]byte, http.Header, int, error) {
+	endpoint := fmt.Sprintf("%s%s?%s", c.Host, path, q.Encode())
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		return nil, nil, 0, err
@@ -86,7 +96,7 @@ func (c *Client) Resolve(ctx context.Context, project, env, format string) (Reso
 	if format != "" {
 		q.Set("format", format)
 	}
-	body, header, status, err := c.resolveGET(ctx, project, q)
+	body, header, status, err := c.resolveGET(ctx, projectResolvePath(project), q)
 	if err != nil {
 		return ResolveResult{}, err
 	}
@@ -117,7 +127,7 @@ func (c *Client) ResolveWithMeta(ctx context.Context, project, env string) (map[
 	q := url.Values{}
 	q.Set("env", env)
 	q.Set("meta", "true")
-	body, _, status, err := c.resolveGET(ctx, project, q)
+	body, _, status, err := c.resolveGET(ctx, projectResolvePath(project), q)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -134,4 +144,38 @@ func (c *Client) ResolveWithMeta(ctx context.Context, project, env string) (map[
 		return nil, nil, fmt.Errorf("opentdm: decode resolve response: %w", err)
 	}
 	return envelope.Data, envelope.Meta.Collisions, nil
+}
+
+// ResolveConfig fetches a SINGLE config's resolved variables (base → env
+// override, tombstones) for a project+environment, rendered in the given format
+// ("dotenv", "json", "shell", "yaml", "properties"; "" => json). This is the
+// per-file retrieval path: no cross-config merge, so no collisions are reported.
+func (c *Client) ResolveConfig(ctx context.Context, project, config, env, format string) (ResolveResult, error) {
+	q := url.Values{}
+	q.Set("env", env)
+	if format != "" {
+		q.Set("format", format)
+	}
+	body, header, status, err := c.resolveGET(ctx, configResolvePath(project, config), q)
+	if err != nil {
+		return ResolveResult{}, err
+	}
+	if status != http.StatusOK {
+		return ResolveResult{}, &APIError{Status: status, Body: string(body)}
+	}
+	return ResolveResult{Body: body, ContentType: header.Get("Content-Type")}, nil
+}
+
+// ResolveConfigMap fetches a single config's resolved variables as a key/value
+// map (format=json).
+func (c *Client) ResolveConfigMap(ctx context.Context, project, config, env string) (map[string]string, error) {
+	res, err := c.ResolveConfig(ctx, project, config, env, "json")
+	if err != nil {
+		return nil, err
+	}
+	out := map[string]string{}
+	if err := json.Unmarshal(res.Body, &out); err != nil {
+		return nil, fmt.Errorf("opentdm: decode resolve response: %w", err)
+	}
+	return out, nil
 }
