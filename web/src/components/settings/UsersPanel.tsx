@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { Box, Button, Flash, Heading, Label, Spinner, Text } from "../ui/primer";
-import { AdminUser, api } from "../api";
+import { Box, Button, Flash, Heading, Label, Spinner, Text } from "../../ui/primer";
+import { AdminUser, api } from "../../api";
 
-export default function Users() {
+// Instance user directory (admin only). Moved from the old /users page into the
+// consolidated Settings → Instance admin → Users panel.
+export default function UsersPanel() {
   const [users, setUsers] = useState<AdminUser[] | null>(null);
   const [err, setErr] = useState("");
 
@@ -32,7 +34,7 @@ export default function Users() {
 
   return (
     <Box>
-      <Heading sx={{ fontSize: 4, mb: 1 }}>Users</Heading>
+      <Heading sx={{ fontSize: 3, mb: 1 }}>Users</Heading>
       <Text sx={{ color: "fg.muted", display: "block", mb: 3 }}>
         Instance users. New users join via project invitations; here you can grant admin or deactivate accounts.
       </Text>

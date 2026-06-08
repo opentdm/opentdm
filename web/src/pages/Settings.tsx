@@ -1,98 +1,65 @@
-import { FormEvent, useEffect, useState } from "react";
-import { Box, Button, Flash, FormControl, Heading, Label, Text, TextInput } from "../ui/primer";
-import { api, PAT } from "../api";
+import { Navigate, Link as RouterLink, useParams } from "react-router-dom";
+import { Box, Heading, NavList } from "../ui/primer";
+import { KeyIcon, PaintbrushIcon, PeopleIcon, PersonIcon, PulseIcon } from "@primer/octicons-react";
+import { User } from "../api";
+import ProfilePanel from "../components/settings/ProfilePanel";
+import AccessTokensPanel from "../components/settings/AccessTokensPanel";
+import AppearancePanel from "../components/settings/AppearancePanel";
+import ActivityPanel from "../components/settings/ActivityPanel";
+import UsersPanel from "../components/settings/UsersPanel";
 
-export default function Settings() {
-  const [pats, setPats] = useState<PAT[]>([]);
-  const [name, setName] = useState("");
-  const [days, setDays] = useState("90");
-  const [minted, setMinted] = useState("");
-  const [err, setErr] = useState("");
+const SECTIONS = ["account", "tokens", "appearance", "activity", "users"] as const;
+type Section = (typeof SECTIONS)[number];
+const ADMIN_SECTIONS: Section[] = ["activity", "users"];
 
-  async function load() {
-    try {
-      setPats(await api.get<PAT[]>("/pats"));
-    } catch (e: any) {
-      setErr(e.message);
-    }
-  }
-  useEffect(() => {
-    void load();
-  }, []);
+// GitHub-style account settings: a sticky left sub-nav + the selected panel.
+// The active section comes from the /settings/:section route param.
+export default function Settings({ me }: { me: User }) {
+  const { section } = useParams();
+  const current: Section = (SECTIONS as readonly string[]).includes(section ?? "")
+    ? (section as Section)
+    : "account";
 
-  async function create(e: FormEvent) {
-    e.preventDefault();
-    setErr("");
-    setMinted("");
-    try {
-      const res = await api.post<{ token: string }>("/pats", { name, expires_in_days: Number(days) || 0 });
-      setMinted(res.token);
-      setName("");
-      await load();
-    } catch (e: any) {
-      setErr(e.message);
-    }
+  // Default-deny admin sections (UX gate; the API enforces too).
+  if (ADMIN_SECTIONS.includes(current) && !me.is_admin) {
+    return <Navigate to="/settings/account" replace />;
   }
-  async function revoke(id: string) {
-    try {
-      await api.del(`/pats/${id}`);
-      await load();
-    } catch (e: any) {
-      setErr(e.message);
-    }
-  }
+
+  const item = (to: Section, label: string, Icon: typeof PersonIcon) => (
+    <NavList.Item as={RouterLink} to={`/settings/${to}`} aria-current={current === to ? "page" : undefined}>
+      <NavList.LeadingVisual>
+        <Icon />
+      </NavList.LeadingVisual>
+      {label}
+    </NavList.Item>
+  );
 
   return (
     <Box>
-      <Heading sx={{ fontSize: 3, mb: 1 }}>Personal access tokens</Heading>
-      <Text sx={{ color: "fg.muted", display: "block", mb: 3 }}>
-        Use a PAT (<code>otdmu_…</code>) with the CLI to write config: <code>opentdm login --token otdmu_…</code>.
-        A PAT grants your full account access — keep it secret.
-      </Text>
-      {minted && (
-        <Flash variant="warning" sx={{ mb: 3 }}>
-          Copy your token now — it won't be shown again:
-          <Box as="code" sx={{ display: "block", mt: 1, fontFamily: "mono", wordBreak: "break-all" }}>
-            {minted}
-          </Box>
-        </Flash>
-      )}
-      {err && (
-        <Flash variant="danger" sx={{ mb: 3 }}>
-          {err}
-        </Flash>
-      )}
-      <Box as="form" onSubmit={create} sx={{ display: "flex", gap: 2, alignItems: "flex-end", mb: 3, flexWrap: "wrap" }}>
-        <FormControl>
-          <FormControl.Label>Name</FormControl.Label>
-          <TextInput value={name} onChange={(e) => setName(e.target.value)} placeholder="laptop-cli" />
-        </FormControl>
-        <FormControl>
-          <FormControl.Label>Expires (days, 0 = never)</FormControl.Label>
-          <TextInput value={days} onChange={(e) => setDays(e.target.value)} />
-        </FormControl>
-        <Button type="submit" variant="primary">
-          Generate token
-        </Button>
-      </Box>
-      <Box sx={{ borderWidth: 1, borderStyle: "solid", borderColor: "border.default", borderRadius: 2 }}>
-        {pats.length === 0 && <Box sx={{ p: 3, color: "fg.muted" }}>No tokens.</Box>}
-        {pats.map((p) => (
-          <Box
-            key={p.id}
-            sx={{ p: 3, borderBottomWidth: 1, borderBottomStyle: "solid", borderColor: "border.muted", display: "flex", gap: 2, alignItems: "center" }}
-          >
-            <Text sx={{ fontWeight: "bold" }}>{p.name}</Text>
-            <Text sx={{ fontFamily: "mono", color: "fg.muted" }}>{p.prefix}…</Text>
-            {p.revoked_at ? <Label variant="danger">revoked</Label> : <Label variant="success">active</Label>}
-            <Box sx={{ flex: 1 }} />
-            {!p.revoked_at && (
-              <Button variant="danger" size="small" onClick={() => revoke(p.id)}>
-                Revoke
-              </Button>
+      <Heading sx={{ fontSize: 5 }}>Settings</Heading>
+      <Box className="otdm-settings">
+        <Box className="otdm-settings-nav">
+          <NavList>
+            <NavList.Group title="Account">
+              {item("account", "Profile", PersonIcon)}
+              {item("tokens", "Access tokens", KeyIcon)}
+              {item("appearance", "Appearance", PaintbrushIcon)}
+            </NavList.Group>
+            {me.is_admin && (
+              <NavList.Group title="Instance admin">
+                {item("activity", "Activity", PulseIcon)}
+                {item("users", "Users", PeopleIcon)}
+              </NavList.Group>
             )}
-          </Box>
-        ))}
+          </NavList>
+        </Box>
+        <Box className="otdm-settings-content">
+          {current === "account" && <ProfilePanel me={me} />}
+          {current === "tokens" && <AccessTokensPanel />}
+          {current === "appearance" && <AppearancePanel />}
+          {current === "activity" && <ActivityPanel />}
+          {current === "users" && <UsersPanel />}
+        </Box>
       </Box>
     </Box>
   );

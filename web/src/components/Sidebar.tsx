@@ -7,8 +7,6 @@ import {
   StarIcon,
   StarFillIcon,
   GearIcon,
-  PeopleIcon,
-  PulseIcon,
   SignOutIcon,
   PersonIcon,
 } from "@primer/octicons-react";
@@ -81,22 +79,6 @@ export default function Sidebar({ me, onSignOut }: { me: User; onSignOut: () => 
           </span>
           <span className="otdm-sb-label">Settings</span>
         </RouterLink>
-        {me.is_admin && (
-          <>
-            <RouterLink to="/activity" className={`otdm-sb-item ${pathname === "/activity" ? "active" : ""}`}>
-              <span className="otdm-sb-ico">
-                <PulseIcon size={16} />
-              </span>
-              <span className="otdm-sb-label">Activity</span>
-            </RouterLink>
-            <RouterLink to="/users" className={`otdm-sb-item ${pathname === "/users" ? "active" : ""}`}>
-              <span className="otdm-sb-ico">
-                <PeopleIcon size={16} />
-              </span>
-              <span className="otdm-sb-label">Users</span>
-            </RouterLink>
-          </>
-        )}
         <div className="otdm-sb-user">
           <span className="otdm-sb-ico">
             <PersonIcon size={16} />
