@@ -15,7 +15,6 @@ import {
 } from "../ui/primer";
 import { api, canWrite, Environment, Project, Token as APIToken } from "../api";
 import EnvironmentManager from "../components/EnvironmentManager";
-import EnvironmentCloner from "../components/EnvironmentCloner";
 import MembersManager from "../components/MembersManager";
 
 export default function ProjectSettings() {
@@ -47,7 +46,6 @@ export default function ProjectSettings() {
       {canWrite(project.your_role) ? (
         <>
           <EnvironmentManager slug={slug} />
-          <EnvironmentCloner slug={slug} />
           <TokensSection slug={slug} />
         </>
       ) : (
