@@ -1,23 +1,24 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Link as RouterLink, useNavigate, useParams } from "react-router-dom";
 import {
+  ActionList,
+  ActionMenu,
   Box,
   Button,
-  Checkbox,
+  Dialog,
   Flash,
   FormControl,
   Heading,
+  IconButton,
   Label,
-  Select,
   Spinner,
   Text,
   TextInput,
   Token,
 } from "../ui/primer";
-import { FileIcon, GearIcon, KeyIcon, PulseIcon } from "@primer/octicons-react";
-import { api, canWrite, Collision, Config, Environment, Project } from "../api";
-
-const fileFormats = ["json", "csv", "xml"];
+import { EyeIcon, FileIcon, GearIcon, KebabHorizontalIcon, KeyIcon, PlusIcon, PulseIcon } from "@primer/octicons-react";
+import { api, canWrite, Config, Environment, Project } from "../api";
+import ResolvedView from "../components/ResolvedView";
 
 export default function ProjectPage() {
   const { slug = "" } = useParams();
@@ -55,6 +56,7 @@ export default function ProjectPage() {
           <Heading sx={{ fontSize: 4 }}>{project.name}</Heading>
           {project.description && <Text sx={{ color: "fg.muted", display: "block", mt: 1 }}>{project.description}</Text>}
           <Box sx={{ mt: 2, display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
+            <Label variant="primary">base</Label>
             {envs.map((e) => (
               <Label key={e.id} variant={e.is_default ? "accent" : "secondary"}>
                 {e.slug}
@@ -66,6 +68,9 @@ export default function ProjectPage() {
               </Label>
             )}
           </Box>
+          <Text sx={{ color: "fg.muted", fontSize: 0, display: "block", mt: 1 }}>
+            Shared defaults (<b>base</b>) + {envs.length} environment{envs.length === 1 ? "" : "s"} that override it.
+          </Text>
         </Box>
         <Box sx={{ flex: 1 }} />
         <Button as={RouterLink} to={`/projects/${slug}/activity`} leadingVisual={PulseIcon}>
@@ -77,8 +82,7 @@ export default function ProjectPage() {
       </Box>
       {err && <Flash variant="danger">{err}</Flash>}
 
-      <ObjectsSection slug={slug} configs={configs} canWrite={canWrite(project.your_role)} onChange={loadAll} />
-      <ResolvedSection slug={slug} envs={envs} />
+      <ObjectsSection slug={slug} configs={configs} envs={envs} canWrite={canWrite(project.your_role)} onChange={loadAll} />
     </Box>
   );
 }
@@ -86,28 +90,31 @@ export default function ProjectPage() {
 function ObjectsSection({
   slug,
   configs,
+  envs,
   canWrite,
   onChange,
 }: {
   slug: string;
   configs: Config[];
+  envs: Environment[];
   canWrite: boolean;
   onChange: () => void;
 }) {
   const nav = useNavigate();
+  const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
-  const [format, setFormat] = useState("env");
   const [tags, setTags] = useState("");
   const [err, setErr] = useState("");
+  const [resolveTarget, setResolveTarget] = useState<Config | null>(null);
 
   async function createConfig(e: FormEvent) {
     e.preventDefault();
     setErr("");
-    const kind = fileFormats.includes(format) ? "file" : "variable";
     try {
+      // Env-only: every new object is a variable/env bundle.
       const created = await api.post<Config>(`/projects/${slug}/configs`, {
-        kind,
-        format,
+        kind: "variable",
+        format: "env",
         name,
         tags: tags
           .split(",")
@@ -116,6 +123,7 @@ function ObjectsSection({
       });
       setName("");
       setTags("");
+      setAdding(false);
       onChange();
       if (created?.id) nav(`/projects/${slug}/configs/${created.id}`);
     } catch (e: any) {
@@ -125,177 +133,107 @@ function ObjectsSection({
 
   return (
     <Box>
-      <Heading sx={{ fontSize: 3, mb: 2 }}>Objects</Heading>
-      {canWrite && (
-      <Box
-        as="form"
-        onSubmit={createConfig}
-        sx={{ display: "flex", gap: 2, mb: 3, alignItems: "flex-end", flexWrap: "wrap" }}
-      >
-        <FormControl>
-          <FormControl.Label>Name</FormControl.Label>
-          <TextInput value={name} onChange={(e) => setName(e.target.value)} placeholder="payments or seed.json" />
-        </FormControl>
-        <FormControl>
-          <FormControl.Label>Type</FormControl.Label>
-          <Select value={format} onChange={(e) => setFormat(e.target.value)}>
-            <Select.OptGroup label="Variables">
-              <Select.Option value="env">env</Select.Option>
-              <Select.Option value="properties">properties</Select.Option>
-              <Select.Option value="secret">secret</Select.Option>
-            </Select.OptGroup>
-            <Select.OptGroup label="Files">
-              <Select.Option value="json">json</Select.Option>
-              <Select.Option value="csv">csv</Select.Option>
-              <Select.Option value="xml">xml</Select.Option>
-            </Select.OptGroup>
-          </Select>
-        </FormControl>
-        <FormControl>
-          <FormControl.Label>Tags</FormControl.Label>
-          <TextInput value={tags} onChange={(e) => setTags(e.target.value)} placeholder="prod, payments" />
-        </FormControl>
-        <Button type="submit" variant="primary">
-          Add object
-        </Button>
+      <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+        <Heading sx={{ fontSize: 3 }}>Objects</Heading>
+        <Box sx={{ flex: 1 }} />
+        {canWrite && (
+          <Button variant="primary" leadingVisual={PlusIcon} onClick={() => setAdding(true)}>
+            Add object
+          </Button>
+        )}
       </Box>
-      )}
-      {err && (
-        <Flash variant="danger" sx={{ mb: 2 }}>
-          {err}
-        </Flash>
-      )}
 
       <Box sx={{ borderWidth: 1, borderStyle: "solid", borderColor: "border.default", borderRadius: 2 }}>
-        {configs.length === 0 && <Box sx={{ p: 3, color: "fg.muted" }}>No objects yet — create one above.</Box>}
+        {configs.length === 0 && (
+          <Box sx={{ p: 3, color: "fg.muted" }}>No objects yet{canWrite ? " — click Add object." : "."}</Box>
+        )}
         {configs.map((c, i) => (
           <Box
             key={c.id}
-            as={RouterLink}
-            to={`/projects/${slug}/configs/${c.id}`}
             className="otdm-hover-row"
             sx={{
-              p: 3,
               display: "flex",
               alignItems: "center",
-              gap: 2,
-              flexWrap: "wrap",
-              textDecoration: "none",
-              color: "fg.default",
+              gap: 1,
               borderBottomWidth: i < configs.length - 1 ? 1 : 0,
               borderBottomStyle: "solid",
               borderColor: "border.muted",
             }}
           >
-            <Box sx={{ color: "fg.muted", display: "flex" }}>
-              {c.kind === "file" ? <FileIcon /> : <KeyIcon />}
+            <Box
+              as={RouterLink}
+              to={`/projects/${slug}/configs/${c.id}`}
+              sx={{
+                flex: 1,
+                p: 3,
+                display: "flex",
+                alignItems: "center",
+                gap: 2,
+                flexWrap: "wrap",
+                textDecoration: "none",
+                color: "fg.default",
+              }}
+            >
+              <Box sx={{ color: "fg.muted", display: "flex" }}>{c.kind === "file" ? <FileIcon /> : <KeyIcon />}</Box>
+              <Text sx={{ fontWeight: "bold" }}>{c.name}</Text>
+              <Label variant="secondary">{c.format}</Label>
+              {c.tags.map((t) => (
+                <Token key={t} text={t} />
+              ))}
             </Box>
-            <Text sx={{ fontWeight: "bold" }}>{c.name}</Text>
-            <Label variant="secondary">{c.format}</Label>
-            {c.tags.map((t) => (
-              <Token key={t} text={t} />
-            ))}
+            {c.kind === "variable" && (
+              <Box sx={{ pr: 2 }}>
+                <ActionMenu>
+                  <ActionMenu.Anchor>
+                    <IconButton icon={KebabHorizontalIcon} aria-label={`Actions for ${c.name}`} variant="invisible" />
+                  </ActionMenu.Anchor>
+                  <ActionMenu.Overlay width="small">
+                    <ActionList>
+                      <ActionList.Item onSelect={() => setResolveTarget(c)}>
+                        <ActionList.LeadingVisual>
+                          <EyeIcon />
+                        </ActionList.LeadingVisual>
+                        View resolved
+                      </ActionList.Item>
+                    </ActionList>
+                  </ActionMenu.Overlay>
+                </ActionMenu>
+              </Box>
+            )}
           </Box>
         ))}
       </Box>
-    </Box>
-  );
-}
 
-function ResolvedSection({ slug, envs }: { slug: string; envs: Environment[] }) {
-  const defaultEnv = envs.find((e) => e.is_default)?.slug ?? envs[0]?.slug ?? "";
-  const [env, setEnv] = useState(defaultEnv);
-  const [format, setFormat] = useState("dotenv");
-  // Secrets are hidden by default so the preview is safe to screen-share.
-  const [showSecrets, setShowSecrets] = useState(false);
-  const [out, setOut] = useState("");
-  const [collisions, setCollisions] = useState<Collision[]>([]);
-  const [err, setErr] = useState("");
-
-  // Keep the selector pinned to the default env until the user changes it.
-  useEffect(() => {
-    setEnv(defaultEnv);
-  }, [defaultEnv]);
-
-  async function load() {
-    setErr("");
-    try {
-      const [text, meta] = await Promise.all([
-        api.resolveText(slug, env, format, showSecrets),
-        api.resolveMeta(slug, env),
-      ]);
-      setOut(text);
-      setCollisions(meta.collisions);
-    } catch (e: any) {
-      setErr(e.message);
-    }
-  }
-
-  return (
-    <Box>
-      <Heading sx={{ fontSize: 3, mb: 2 }}>Resolved</Heading>
-      <Box sx={{ display: "flex", gap: 2, alignItems: "flex-end", mb: 2 }}>
-        <FormControl>
-          <FormControl.Label>Environment</FormControl.Label>
-          <Select value={env} onChange={(e) => setEnv(e.target.value)}>
-            {envs.map((e) => (
-              <Select.Option key={e.id} value={e.slug}>
-                {e.slug}
-              </Select.Option>
-            ))}
-          </Select>
-        </FormControl>
-        <FormControl>
-          <FormControl.Label>Format</FormControl.Label>
-          <Select value={format} onChange={(e) => setFormat(e.target.value)}>
-            {["dotenv", "json", "shell", "yaml", "properties"].map((f) => (
-              <Select.Option key={f} value={f}>
-                {f}
-              </Select.Option>
-            ))}
-          </Select>
-        </FormControl>
-        <FormControl>
-          <Checkbox checked={showSecrets} onChange={(e) => setShowSecrets(e.target.checked)} />
-          <FormControl.Label>Show secrets</FormControl.Label>
-        </FormControl>
-        <Button onClick={load}>Resolve</Button>
-      </Box>
-      {err && (
-        <Flash variant="danger" sx={{ mb: 2 }}>
-          {err}
-        </Flash>
-      )}
-      {collisions.length > 0 && (
-        <Flash variant="warning" sx={{ mb: 2 }}>
-          <Box sx={{ fontWeight: "bold", mb: 1 }}>
-            {collisions.length} cross-config key collision{collisions.length > 1 ? "s" : ""}
+      {adding && (
+        <Dialog title="Add object" onClose={() => setAdding(false)}>
+          <Box as="form" onSubmit={createConfig} sx={{ display: "grid", gap: 3 }}>
+            {err && <Flash variant="danger">{err}</Flash>}
+            <FormControl>
+              <FormControl.Label>Name</FormControl.Label>
+              <TextInput block value={name} onChange={(e) => setName(e.target.value)} placeholder="boss29 or m88" />
+              <FormControl.Caption>An env (.env-style) variable bundle.</FormControl.Caption>
+            </FormControl>
+            <FormControl>
+              <FormControl.Label>Tags</FormControl.Label>
+              <TextInput block value={tags} onChange={(e) => setTags(e.target.value)} placeholder="prod, payments" />
+              <FormControl.Caption>Comma-separated, optional.</FormControl.Caption>
+            </FormControl>
+            <Box sx={{ display: "flex", gap: 2, justifyContent: "flex-end" }}>
+              <Button type="button" onClick={() => setAdding(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" variant="primary">
+                Add object
+              </Button>
+            </Box>
           </Box>
-          <Box as="ul" sx={{ pl: 3, m: 0 }}>
-            {collisions.map((c) => (
-              <Box as="li" key={c.key}>
-                <Box as="code">{c.key}</Box> — kept <Box as="code">{c.winning_config}</Box>, shadowed{" "}
-                <Box as="code">{c.losing_config}</Box>
-              </Box>
-            ))}
-          </Box>
-        </Flash>
+        </Dialog>
       )}
-      {out && (
-        <Box
-          as="pre"
-          sx={{
-            p: 3,
-            bg: "canvas.subtle",
-            borderRadius: 2,
-            fontFamily: "mono",
-            fontSize: 1,
-            overflow: "auto",
-            whiteSpace: "pre-wrap",
-          }}
-        >
-          {out}
-        </Box>
+
+      {resolveTarget && (
+        <Dialog title={`Resolved — ${resolveTarget.name}`} width="large" onClose={() => setResolveTarget(null)}>
+          <ResolvedView slug={slug} config={resolveTarget} envs={envs} />
+        </Dialog>
       )}
     </Box>
   );

@@ -6,21 +6,21 @@ import {
   Box,
   Breadcrumbs,
   Button,
-  Checkbox,
   ConfirmationDialog,
+  Dialog,
   Flash,
   FormControl,
   Heading,
   Label,
-  Select,
   Spinner,
   Text,
   TextInput,
   Token,
 } from "../ui/primer";
-import { DuplicateIcon, GearIcon, KebabHorizontalIcon, PencilIcon, TrashIcon } from "@primer/octicons-react";
+import { EyeIcon, GearIcon, KebabHorizontalIcon, PencilIcon, TrashIcon } from "@primer/octicons-react";
 import { api, canWrite, Config, Environment } from "../api";
 import EditorDispatch from "../components/editors/EditorDispatch";
+import ResolvedView from "../components/ResolvedView";
 import VersionHistory from "../components/VersionHistory";
 
 export default function ObjectPage() {
@@ -31,7 +31,8 @@ export default function ObjectPage() {
   const [role, setRole] = useState<string | undefined>(undefined);
   const [layer, setLayer] = useState("base");
   const [editing, setEditing] = useState(false);
-  const [cloning, setCloning] = useState(false);
+  const [resolveOpen, setResolveOpen] = useState(false);
+  const [showResolved, setShowResolved] = useState(false);
   const [reloadNonce, setReloadNonce] = useState(0);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -88,44 +89,40 @@ export default function ObjectPage() {
           <Token key={t} text={t} />
         ))}
         <Box sx={{ flex: 1 }} />
-        {!readOnly && (
-        <ActionMenu>
-          <ActionMenu.Anchor>
-            <Button leadingVisual={KebabHorizontalIcon}>Object</Button>
-          </ActionMenu.Anchor>
-          <ActionMenu.Overlay width="small">
-            <ActionList>
-              <ActionList.Item
-                onSelect={() => {
-                  setEditing((v) => !v);
-                  setCloning(false);
-                }}
-              >
-                <ActionList.LeadingVisual>
-                  <PencilIcon />
-                </ActionList.LeadingVisual>
-                Edit name & tags
-              </ActionList.Item>
-              <ActionList.Item
-                onSelect={() => {
-                  setCloning((v) => !v);
-                  setEditing(false);
-                }}
-              >
-                <ActionList.LeadingVisual>
-                  <DuplicateIcon />
-                </ActionList.LeadingVisual>
-                Clone from…
-              </ActionList.Item>
-              <ActionList.Item variant="danger" onSelect={() => setConfirmDelete(true)}>
-                <ActionList.LeadingVisual>
-                  <TrashIcon />
-                </ActionList.LeadingVisual>
-                Delete object
-              </ActionList.Item>
-            </ActionList>
-          </ActionMenu.Overlay>
-        </ActionMenu>
+        {(config.kind === "variable" || !readOnly) && (
+          <ActionMenu>
+            <ActionMenu.Anchor>
+              <Button leadingVisual={KebabHorizontalIcon}>Object</Button>
+            </ActionMenu.Anchor>
+            <ActionMenu.Overlay width="small">
+              <ActionList>
+                {config.kind === "variable" && (
+                  <ActionList.Item onSelect={() => setResolveOpen(true)}>
+                    <ActionList.LeadingVisual>
+                      <EyeIcon />
+                    </ActionList.LeadingVisual>
+                    View resolved
+                  </ActionList.Item>
+                )}
+                {!readOnly && (
+                  <ActionList.Item onSelect={() => setEditing((v) => !v)}>
+                    <ActionList.LeadingVisual>
+                      <PencilIcon />
+                    </ActionList.LeadingVisual>
+                    Edit name & tags
+                  </ActionList.Item>
+                )}
+                {!readOnly && (
+                  <ActionList.Item variant="danger" onSelect={() => setConfirmDelete(true)}>
+                    <ActionList.LeadingVisual>
+                      <TrashIcon />
+                    </ActionList.LeadingVisual>
+                    Delete object
+                  </ActionList.Item>
+                )}
+              </ActionList>
+            </ActionMenu.Overlay>
+          </ActionMenu>
         )}
       </Box>
 
@@ -137,21 +134,6 @@ export default function ObjectPage() {
           onSaved={(c) => {
             setConfig(c);
             setEditing(false);
-          }}
-        />
-      )}
-
-      {cloning && (
-        <ClonePanel
-          key={layer}
-          slug={slug}
-          config={config}
-          layer={layer}
-          envs={envs}
-          onClose={() => setCloning(false)}
-          onCloned={() => {
-            setCloning(false);
-            setReloadNonce((n) => n + 1);
           }}
         />
       )}
@@ -182,6 +164,19 @@ export default function ObjectPage() {
         readOnly={readOnly}
       />
 
+      {config.kind === "variable" && (
+        <Box>
+          <Button variant="invisible" leadingVisual={EyeIcon} onClick={() => setShowResolved((v) => !v)}>
+            {showResolved ? "Hide resolved" : "Show resolved"}
+          </Button>
+          {showResolved && (
+            <Box sx={{ mt: 2 }}>
+              <ResolvedView slug={slug} config={config} envs={envs} initialEnv={layer === "base" ? undefined : layer} />
+            </Box>
+          )}
+        </Box>
+      )}
+
       <Box>
         <Button variant="invisible" leadingVisual={GearIcon} onClick={() => setShowHistory((v) => !v)}>
           {showHistory ? "Hide history" : "History & rollback"}
@@ -196,6 +191,12 @@ export default function ObjectPage() {
           />
         )}
       </Box>
+
+      {resolveOpen && (
+        <Dialog title={`Resolved — ${config.name}`} width="large" onClose={() => setResolveOpen(false)}>
+          <ResolvedView slug={slug} config={config} envs={envs} initialEnv={layer === "base" ? undefined : layer} />
+        </Dialog>
+      )}
 
       {confirmDelete && (
         <ConfirmationDialog
@@ -277,86 +278,6 @@ function SettingsPanel({
           Cancel
         </Button>
       </Box>
-    </Box>
-  );
-}
-
-function ClonePanel({
-  slug,
-  config,
-  layer,
-  envs,
-  onClose,
-  onCloned,
-}: {
-  slug: string;
-  config: Config;
-  layer: string;
-  envs: Environment[];
-  onClose: () => void;
-  onCloned: () => void;
-}) {
-  const sources = ["base", ...envs.map((e) => e.slug)].filter((l) => l !== layer);
-  const isVar = config.kind !== "file";
-  const [from, setFrom] = useState(sources[0] ?? "");
-  const [withValues, setWithValues] = useState(true);
-  const [confirm, setConfirm] = useState(false);
-  const [err, setErr] = useState("");
-
-  async function apply() {
-    setConfirm(false);
-    setErr("");
-    try {
-      await api.cloneConfigLayer(slug, config.id, { from, to: layer, with_values: isVar ? withValues : true });
-      onCloned();
-    } catch (e: any) {
-      setErr(e.message);
-    }
-  }
-
-  return (
-    <Box sx={{ p: 3, bg: "canvas.subtle", borderRadius: 2, display: "grid", gap: 2 }}>
-      {err && <Flash variant="danger">{err}</Flash>}
-      <Box sx={{ display: "flex", gap: 3, flexWrap: "wrap", alignItems: "flex-end" }}>
-        <FormControl>
-          <FormControl.Label>
-            Clone <b>{layer}</b> from
-          </FormControl.Label>
-          <Select value={from} onChange={(e) => setFrom(e.target.value)}>
-            {sources.map((s) => (
-              <Select.Option key={s} value={s}>
-                {s}
-              </Select.Option>
-            ))}
-          </Select>
-        </FormControl>
-        {isVar && (
-          <FormControl>
-            <Checkbox checked={withValues} onChange={(e) => setWithValues(e.target.checked)} />
-            <FormControl.Label>Copy values</FormControl.Label>
-          </FormControl>
-        )}
-        <Button variant="primary" onClick={() => setConfirm(true)} disabled={!from || from === layer}>
-          Clone
-        </Button>
-        <Button onClick={onClose}>Cancel</Button>
-      </Box>
-      <Text sx={{ color: "fg.muted", fontSize: 0 }}>
-        {isVar && !withValues
-          ? `Copies ${from}'s keys into ${layer} with empty values — these override (hide) inherited base values until you fill them in.`
-          : `Replaces ${layer}'s current content with ${from}'s.`}
-      </Text>
-      {confirm && (
-        <ConfirmationDialog
-          title={`Clone ${layer} from ${from}?`}
-          confirmButtonContent="Clone"
-          confirmButtonType="danger"
-          onClose={(gesture) => (gesture === "confirm" ? void apply() : setConfirm(false))}
-        >
-          This replaces everything currently in the <b>{layer}</b> layer of “{config.name}”. You can roll it back from
-          History.
-        </ConfirmationDialog>
-      )}
     </Box>
   );
 }

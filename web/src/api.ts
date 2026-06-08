@@ -131,15 +131,6 @@ export interface Token {
   revoked_at?: string | null;
 }
 
-export interface CloneSummary {
-  from: string;
-  to: string;
-  cloned: string[];
-  unchanged: string[];
-  skipped: string[];
-  failed: { config: string; reason: string }[];
-}
-
 export class APIError extends Error {
   status: number;
   constructor(status: number, message: string) {
@@ -277,10 +268,6 @@ export const api = {
     request<AdminUser>("PATCH", `/users/${id}`, body),
 
   getConfig: (slug: string, id: string) => request<Config>("GET", `/projects/${slug}/configs/${id}`),
-  cloneConfigLayer: (slug: string, id: string, body: { from: string; to: string; with_values: boolean }) =>
-    request<{ from: string; to: string; version: number }>("POST", `/projects/${slug}/configs/${id}/clone`, body),
-  cloneEnvironment: (slug: string, body: { from: string; to: string; with_values: boolean }) =>
-    request<CloneSummary>("POST", `/projects/${slug}/clone-environment`, body),
   updateConfig: (slug: string, id: string, body: { name: string; sort_order: number; description: string; tags: string[] }) =>
     request<Config>("PATCH", `/projects/${slug}/configs/${id}`, body),
   archiveConfig: (slug: string, id: string) => request<unknown>("DELETE", `/projects/${slug}/configs/${id}`),
@@ -289,22 +276,20 @@ export const api = {
     request<Item[]>("GET", `/projects/${slug}/configs/${configId}/items?env=${encodeURIComponent(env)}`),
   putItems: (slug: string, configId: string, env: string, items: Item[], comment?: string) =>
     request<unknown>("PUT", `/projects/${slug}/configs/${configId}/items?env=${encodeURIComponent(env)}`, { items, comment }),
-  resolveText: async (project: string, env: string, format: string, includeSecrets = true): Promise<string> => {
+  // Per-file resolve: a single config's effective env (base → env override,
+  // tombstones), rendered server-side. Secrets are masked by default so the
+  // preview is safe to screen-share.
+  resolveConfigText: async (
+    slug: string,
+    configId: string,
+    env: string,
+    format: string,
+    includeSecrets = false,
+  ): Promise<string> => {
     const params = new URLSearchParams({ env, format });
     if (!includeSecrets) params.set("include_secrets", "false");
     const resp = await fetch(
-      `/api/v1/projects/${encodeURIComponent(project)}/resolve?${params.toString()}`,
-      { credentials: "include" },
-    );
-    return resp.text();
-  },
-  // Resolve with the JSON envelope: the merged values plus full collision detail.
-  resolveMeta: async (
-    project: string,
-    env: string,
-  ): Promise<{ values: Record<string, string>; collisions: Collision[] }> => {
-    const resp = await fetch(
-      `/api/v1/projects/${encodeURIComponent(project)}/resolve?env=${encodeURIComponent(env)}&meta=true`,
+      `/api/v1/projects/${encodeURIComponent(slug)}/configs/${encodeURIComponent(configId)}/resolve?${params.toString()}`,
       { credentials: "include" },
     );
     const text = await resp.text();
@@ -318,11 +303,7 @@ export const api = {
       }
       throw new APIError(resp.status, msg);
     }
-    const json = JSON.parse(text);
-    return {
-      values: (json.data ?? {}) as Record<string, string>,
-      collisions: (json.meta?.collisions ?? []) as Collision[],
-    };
+    return text;
   },
   // Raw text GET (for file blobs / version snapshots).
   getText: async (path: string): Promise<string> => {
