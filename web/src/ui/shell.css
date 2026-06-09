@@ -265,7 +265,9 @@
   display: flex;
   gap: 12px;
   align-items: flex-start;
-  padding: 16px 16px 12px;
+  /* Reserve the top-right corner for the absolute .otdm-star overlay so the
+     role badge never sits under it. */
+  padding: 16px 44px 12px 16px;
 }
 .otdm-pcard-id {
   flex: 1;
