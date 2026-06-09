@@ -60,6 +60,33 @@ func (q *Queries) ArchiveConfig(ctx context.Context, projectID, configID uuid.UU
 	return nil
 }
 
+// SearchConfigs finds non-archived configs whose name matches query, across the
+// projects the user can see (all of them for an admin, else those they're a
+// member of). The query is expected pre-escaped for ILIKE (see app layer).
+func (q *Queries) SearchConfigs(ctx context.Context, userID uuid.UUID, isAdmin bool, query string, limit int) ([]model.ConfigSearchHit, error) {
+	rows, err := q.db.Query(ctx, `
+		SELECT c.id, c.name, p.slug, p.name
+		FROM configs c JOIN projects p ON p.id = c.project_id
+		WHERE c.archived_at IS NULL AND p.archived_at IS NULL
+		  AND c.name ILIKE '%' || $2 || '%' ESCAPE '\'
+		  AND ($3 OR EXISTS (SELECT 1 FROM project_members m WHERE m.project_id = p.id AND m.user_id = $1))
+		ORDER BY p.name, c.sort_order, c.name
+		LIMIT $4`, userID, query, isAdmin, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []model.ConfigSearchHit
+	for rows.Next() {
+		var h model.ConfigSearchHit
+		if err := rows.Scan(&h.ConfigID, &h.ConfigName, &h.ProjectSlug, &h.ProjectName); err != nil {
+			return nil, err
+		}
+		out = append(out, h)
+	}
+	return out, rows.Err()
+}
+
 // ListConfigs returns non-archived configs for a project, ordered by sort_order.
 func (q *Queries) ListConfigs(ctx context.Context, projectID uuid.UUID) ([]model.Config, error) {
 	rows, err := q.db.Query(ctx, configSelect+
