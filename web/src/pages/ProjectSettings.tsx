@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { Link as RouterLink, useParams } from "react-router-dom";
+import { Link as RouterLink, useParams, useSearchParams } from "react-router-dom";
 import {
   Box,
   Breadcrumbs,
@@ -12,14 +12,24 @@ import {
   Spinner,
   Text,
   TextInput,
+  UnderlineNav,
 } from "../ui/primer";
 import { api, canWrite, Environment, Project, Token as APIToken } from "../api";
 import { useToast } from "../lib/toast";
 import EnvironmentManager from "../components/EnvironmentManager";
 import MembersManager from "../components/MembersManager";
 
+const TABS = ["members", "environments", "tokens"] as const;
+type SettingsTab = (typeof TABS)[number];
+const TAB_LABELS: Record<SettingsTab, string> = {
+  members: "Members",
+  environments: "Environments",
+  tokens: "Service tokens",
+};
+
 export default function ProjectSettings() {
   const { slug = "" } = useParams();
+  const [params, setParams] = useSearchParams();
   const [project, setProject] = useState<Project | null>(null);
   const [err, setErr] = useState("");
 
@@ -32,8 +42,19 @@ export default function ProjectSettings() {
 
   if (!project) return err ? <Flash variant="danger">{err}</Flash> : <Spinner />;
 
+  const raw = params.get("tab");
+  const tab: SettingsTab = (TABS as readonly string[]).includes(raw ?? "") ? (raw as SettingsTab) : "members";
+  const setTab = (t: SettingsTab) => setParams(t === "members" ? {} : { tab: t }, { replace: true });
+  const writable = canWrite(project.your_role);
+
+  const readOnlyNote = (
+    <Text sx={{ color: "fg.muted" }}>
+      You have read-only (viewer) access — this is limited to editors and owners.
+    </Text>
+  );
+
   return (
-    <Box sx={{ display: "grid", gap: 4 }}>
+    <Box sx={{ display: "grid", gap: 3 }}>
       <Box>
         <Breadcrumbs>
           <Breadcrumbs.Item as={RouterLink} to={`/projects/${slug}`}>
@@ -43,17 +64,25 @@ export default function ProjectSettings() {
         </Breadcrumbs>
         <Heading sx={{ fontSize: 4, mt: 2 }}>{project.name} settings</Heading>
       </Box>
-      <MembersManager slug={slug} role={project.your_role} />
-      {canWrite(project.your_role) ? (
-        <>
-          <EnvironmentManager slug={slug} />
-          <TokensSection slug={slug} />
-        </>
-      ) : (
-        <Text sx={{ color: "fg.muted" }}>
-          You have read-only (viewer) access — environment and token management is limited to editors and owners.
-        </Text>
-      )}
+
+      <UnderlineNav aria-label="Project settings">
+        {TABS.map((t) => (
+          <UnderlineNav.Item
+            key={t}
+            aria-current={tab === t ? "page" : undefined}
+            onSelect={(e) => {
+              e.preventDefault();
+              setTab(t);
+            }}
+          >
+            {TAB_LABELS[t]}
+          </UnderlineNav.Item>
+        ))}
+      </UnderlineNav>
+
+      {tab === "members" && <MembersManager slug={slug} role={project.your_role} />}
+      {tab === "environments" && (writable ? <EnvironmentManager slug={slug} /> : readOnlyNote)}
+      {tab === "tokens" && (writable ? <TokensSection slug={slug} /> : readOnlyNote)}
     </Box>
   );
 }
