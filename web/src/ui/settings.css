@@ -13,6 +13,9 @@
   position: sticky;
   top: 24px;
 }
+.otdm-settings-content {
+  min-width: 0;
+}
 @media (max-width: 768px) {
   .otdm-settings {
     grid-template-columns: 1fr;

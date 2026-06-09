@@ -28,7 +28,7 @@ export default function CsvEditor({ slug, config, layer, readOnly }: CsvEditorPr
       .then(setText)
       .catch(() => setText(""))
       .finally(() => setLoading(false));
-  }, [config.id, layer]);
+  }, [slug, config.id, layer]);
 
   const rows = useMemo(() => parseCsv(text), [text]);
 

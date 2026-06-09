@@ -64,3 +64,29 @@ body {
   --borderColor-muted: oklch(0.25 0.015 278);
   --borderColor-emphasis: oklch(0.37 0.018 278);
 }
+
+/* colorMode="auto" on a dark system: Primer applies its dark vars via this
+   media block (not the [data-light-theme="dark"] selector above), so the
+   overrides must be repeated here to win. Selector + specificity mirror
+   @primer/primitives' dark.css; keep these values in sync with the block above. */
+@media (prefers-color-scheme: dark) {
+  [data-color-mode][data-color-mode="auto"][data-dark-theme="dark"] {
+    --fgColor-accent: oklch(0.78 0.13 278);
+    --fgColor-accent-emphasis: oklch(0.78 0.13 278);
+    --bgColor-accent-emphasis: oklch(0.68 0.15 278);
+    --bgColor-accent-muted: oklch(0.3 0.06 278);
+    --borderColor-accent-emphasis: oklch(0.62 0.13 278);
+    --borderColor-accent-muted: oklch(0.4 0.09 278);
+    --underlineNav-borderColor-active: oklch(0.68 0.15 278);
+
+    --fgColor-default: oklch(0.935 0.006 278);
+    --fgColor-muted: oklch(0.68 0.012 278);
+    --bgColor-default: oklch(0.207 0.014 278);
+    --bgColor-muted: oklch(0.17 0.013 278);
+    --bgColor-inset: oklch(0.17 0.013 278);
+    --bgColor-neutral-muted: oklch(0.3 0.016 278 / 0.5);
+    --borderColor-default: oklch(0.29 0.016 278);
+    --borderColor-muted: oklch(0.25 0.015 278);
+    --borderColor-emphasis: oklch(0.37 0.018 278);
+  }
+}

@@ -46,7 +46,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <div className="otdm-toast-host" aria-live="polite" aria-atomic="false">
         {toasts.map((t) => (
-          <div key={t.id} className={`otdm-toast otdm-toast-${t.variant}`} role="status">
+          <div key={t.id} className={`otdm-toast otdm-toast-${t.variant}`}>
             <span className="otdm-toast-ico">
               <VariantIcon variant={t.variant} />
             </span>

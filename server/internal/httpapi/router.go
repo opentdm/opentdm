@@ -108,9 +108,6 @@ func NewRouter(opts Options) http.Handler {
 				m.Use(h.csrf)
 				m.Get("/auth/me", h.handleMe)
 				m.Get("/search", h.handleSearch)
-				m.Patch("/auth/me", h.handleUpdateProfile)
-				m.Post("/auth/change-password", h.handleChangePassword)
-				m.Put("/auth/me/preferences", h.handleUpdatePreferences)
 				m.Get("/projects", h.handleListProjects)
 				m.Post("/projects", h.handleCreateProject)
 				m.Get("/projects/{project}", h.handleGetProject)
@@ -148,9 +145,14 @@ func NewRouter(opts Options) http.Handler {
 				// Project activity feed (viewer+).
 				m.Get("/projects/{project}/audit", h.handleProjectAudit)
 
-				// PAT lifecycle is session-only (a PAT cannot mint/revoke PATs).
+				// Account mutations + PAT lifecycle are session-only: a leaked user
+				// PAT (CSRF-exempt) must not be able to change the account's email,
+				// password, or preferences, or mint/revoke PATs.
 				m.Group(func(s chi.Router) {
 					s.Use(h.requireSession)
+					s.Patch("/auth/me", h.handleUpdateProfile)
+					s.Post("/auth/change-password", h.handleChangePassword)
+					s.Put("/auth/me/preferences", h.handleUpdatePreferences)
 					s.Get("/pats", h.handleListPATs)
 					s.Post("/pats", h.handleCreatePAT)
 					s.Delete("/pats/{pat}", h.handleRevokePAT)

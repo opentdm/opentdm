@@ -10,8 +10,9 @@ interface FileTreeProps {
   activeId: string;
 }
 
-// A variable object reads as <name>.env; a file object keeps its filename.
-const objFile = (c: Config) => (c.kind === "variable" ? `${c.name}.env` : c.name);
+// File objects keep their filename; variable objects read as <name>.<format>
+// (env/properties/secret) so the format is legible at a glance.
+const objFile = (c: Config) => (c.kind === "variable" ? `${c.name}.${c.format}` : c.name);
 
 // FileTree lists a project's objects as a file tree (the project = repo). Each file
 // links to its object page, so the tree doubles as sibling navigation.

@@ -39,12 +39,14 @@ export default function KvEditor({ slug, config, layer, readOnly, onSaved }: KvE
   const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    let alive = true;
     setErr("");
     setRaw(false);
     setLoading(true);
     const load = async () => {
       if (isBase) {
         const items = await api.getItems(slug, config.id, "base");
+        if (!alive) return;
         setBaseMap(new Map());
         setRows(buildRows(items, [], true).map((r) => ({ ...r, reveal: false })));
         return;
@@ -53,6 +55,7 @@ export default function KvEditor({ slug, config, layer, readOnly, onSaved }: KvE
         api.getItems(slug, config.id, "base"),
         api.getItems(slug, config.id, layer),
       ]);
+      if (!alive) return;
       const bMap = new Map<string, BaseVal>(
         baseItems.filter((i) => !i.deleted).map((i) => [i.key, { value: i.value, is_secret: i.is_secret }]),
       );
@@ -60,8 +63,11 @@ export default function KvEditor({ slug, config, layer, readOnly, onSaved }: KvE
       setRows(buildRows(baseItems, layerItems, false).map((r) => ({ ...r, reveal: false })));
     };
     load()
-      .catch((e: any) => setErr(e.message))
-      .finally(() => setLoading(false));
+      .catch((e: any) => alive && setErr(e.message))
+      .finally(() => alive && setLoading(false));
+    return () => {
+      alive = false;
+    };
   }, [slug, config.id, layer, reloadNonce]);
 
   function update(i: number, patch: Partial<Row>) {
@@ -126,10 +132,12 @@ export default function KvEditor({ slug, config, layer, readOnly, onSaved }: KvE
   function importEnv(e: ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f) return;
-    f.text().then((t) => {
-      setRawText((p) => (p ? p + "\n" : "") + t);
-      setRaw(true);
-    });
+    f.text()
+      .then((t) => {
+        setRawText((p) => (p ? p + "\n" : "") + t);
+        setRaw(true);
+      })
+      .catch((err: unknown) => setErr(err instanceof Error ? err.message : "Could not read file"));
     e.target.value = "";
   }
 
@@ -221,7 +229,7 @@ export default function KvEditor({ slug, config, layer, readOnly, onSaved }: KvE
                 {r.is_secret && (
                   <IconButton
                     icon={r.reveal ? EyeIcon : EyeClosedIcon}
-                    aria-label="reveal value"
+                    aria-label={`${r.reveal ? "Hide" : "Reveal"} value${r.key ? ` for ${r.key}` : ""}`}
                     size="small"
                     onClick={() => update(i, { reveal: !r.reveal })}
                   />
