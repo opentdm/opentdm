@@ -98,6 +98,40 @@ func (h *Handlers) handleMe(w http.ResponseWriter, r *http.Request) {
 	WriteJSON(w, http.StatusOK, toUserDTO(u), nil)
 }
 
+// handleUpdateProfile updates the signed-in user's email.
+func (h *Handlers) handleUpdateProfile(w http.ResponseWriter, r *http.Request) {
+	u, _ := userFrom(r.Context())
+	var req struct {
+		Email string `json:"email"`
+	}
+	if err := decodeJSON(w, r, &req); err != nil {
+		return
+	}
+	updated, err := h.svc.UpdateProfile(r.Context(), u.ID, req.Email)
+	if err != nil {
+		h.writeErr(w, r, err)
+		return
+	}
+	WriteJSON(w, http.StatusOK, toUserDTO(updated), nil)
+}
+
+// handleChangePassword verifies the current password and sets a new one.
+func (h *Handlers) handleChangePassword(w http.ResponseWriter, r *http.Request) {
+	u, _ := userFrom(r.Context())
+	var req struct {
+		CurrentPassword string `json:"current_password"`
+		NewPassword     string `json:"new_password"`
+	}
+	if err := decodeJSON(w, r, &req); err != nil {
+		return
+	}
+	if err := h.svc.ChangePassword(r.Context(), u.ID, req.CurrentPassword, req.NewPassword); err != nil {
+		h.writeErr(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // handleUpdatePreferences replaces the signed-in user's UI preferences (theme +
 // favourite project slugs). Session-authenticated; the body is the full prefs.
 func (h *Handlers) handleUpdatePreferences(w http.ResponseWriter, r *http.Request) {

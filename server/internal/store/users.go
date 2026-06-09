@@ -106,6 +106,23 @@ func scanUser(row scannable) (model.User, error) {
 	return u, err
 }
 
+// UpdateUserEmail changes a user's email (unique; the caller maps a conflict).
+func (q *Queries) UpdateUserEmail(ctx context.Context, id uuid.UUID, email string) (model.User, error) {
+	row := q.db.QueryRow(ctx, `
+		UPDATE users SET email = $2
+		WHERE id = $1
+		RETURNING id, username, email, password_hash, is_admin, is_active, created_at, updated_at, preferences`,
+		id, email)
+	u, err := scanUser(row)
+	return u, mapNoRows(err)
+}
+
+// UpdateUserPassword replaces a user's password hash.
+func (q *Queries) UpdateUserPassword(ctx context.Context, id uuid.UUID, hash string) error {
+	_, err := q.db.Exec(ctx, "UPDATE users SET password_hash = $2 WHERE id = $1", id, hash)
+	return err
+}
+
 // UpdatePreferences replaces a user's preferences jsonb blob.
 func (q *Queries) UpdatePreferences(ctx context.Context, id uuid.UUID, prefs []byte) (model.User, error) {
 	row := q.db.QueryRow(ctx, `
