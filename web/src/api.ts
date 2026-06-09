@@ -124,6 +124,12 @@ export interface Item {
   is_secret: boolean;
   deleted: boolean;
 }
+export interface SearchHit {
+  config_id: string;
+  name: string;
+  project_slug: string;
+  project_name: string;
+}
 export interface Token {
   id: string;
   name: string;
@@ -270,6 +276,9 @@ export const api = {
   listUsers: () => request<AdminUser[]>("GET", `/users`),
   updateUser: (id: string, body: { is_active?: boolean; is_admin?: boolean }) =>
     request<AdminUser>("PATCH", `/users/${id}`, body),
+
+  // Cross-project object search (⌘K palette).
+  searchConfigs: (q: string) => request<SearchHit[]>("GET", `/search?q=${encodeURIComponent(q)}`),
 
   getConfig: (slug: string, id: string) => request<Config>("GET", `/projects/${slug}/configs/${id}`),
   updateConfig: (slug: string, id: string, body: { name: string; sort_order: number; description: string }) =>

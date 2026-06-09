@@ -65,6 +65,14 @@ type UserPreferences struct {
 	Favourites []string `json:"favourites,omitempty"`
 }
 
+// ConfigSearchHit is one result of a cross-project object search (⌘K palette).
+type ConfigSearchHit struct {
+	ConfigID    uuid.UUID
+	ConfigName  string
+	ProjectSlug string
+	ProjectName string
+}
+
 // ProjectMember is a user's role on a project (Username/Email joined for display).
 type ProjectMember struct {
 	ProjectID uuid.UUID

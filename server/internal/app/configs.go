@@ -3,6 +3,7 @@ package app
 import (
 	"bytes"
 	"context"
+	"strings"
 
 	"github.com/google/uuid"
 
@@ -11,6 +12,20 @@ import (
 	"github.com/opentdm/opentdm/server/internal/model"
 	"github.com/opentdm/opentdm/server/internal/store"
 )
+
+// likeEscaper neutralizes ILIKE wildcards in user-supplied search text so the
+// query is a literal substring match (ESCAPE '\' in the SQL).
+var likeEscaper = strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
+
+// SearchConfigs returns up to 20 objects whose name matches query across the
+// projects the user can access. Empty query → no results.
+func (s *Service) SearchConfigs(ctx context.Context, user model.User, query string) ([]model.ConfigSearchHit, error) {
+	query = strings.TrimSpace(query)
+	if query == "" {
+		return nil, nil
+	}
+	return s.store.Q().SearchConfigs(ctx, user.ID, user.IsAdmin, likeEscaper.Replace(query), 20)
+}
 
 var variableFormats = map[string]bool{
 	model.FormatEnv: true, model.FormatProperties: true, model.FormatSecret: true,

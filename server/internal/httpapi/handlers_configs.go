@@ -10,6 +10,34 @@ import (
 	"github.com/opentdm/opentdm/server/internal/model"
 )
 
+type searchHitDTO struct {
+	ConfigID    string `json:"config_id"`
+	Name        string `json:"name"`
+	ProjectSlug string `json:"project_slug"`
+	ProjectName string `json:"project_name"`
+}
+
+// handleSearch finds objects by name across the projects the user can access
+// (for the ⌘K palette). Returns an empty list for a blank query.
+func (h *Handlers) handleSearch(w http.ResponseWriter, r *http.Request) {
+	u, _ := userFrom(r.Context())
+	hits, err := h.svc.SearchConfigs(r.Context(), u, r.URL.Query().Get("q"))
+	if err != nil {
+		h.writeErr(w, r, err)
+		return
+	}
+	out := make([]searchHitDTO, 0, len(hits))
+	for _, hit := range hits {
+		out = append(out, searchHitDTO{
+			ConfigID:    hit.ConfigID.String(),
+			Name:        hit.ConfigName,
+			ProjectSlug: hit.ProjectSlug,
+			ProjectName: hit.ProjectName,
+		})
+	}
+	WriteJSON(w, http.StatusOK, out, nil)
+}
+
 // resolveConfig loads the {config} UUID param and verifies it belongs to project.
 func (h *Handlers) resolveConfig(w http.ResponseWriter, r *http.Request, project model.Project) (model.Config, bool) {
 	id, err := uuid.Parse(chi.URLParam(r, "config"))

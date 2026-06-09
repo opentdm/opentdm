@@ -1,6 +1,7 @@
 import { Fragment, ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  FileIcon,
   GearIcon,
   KeyIcon,
   PaintbrushIcon,
@@ -9,6 +10,7 @@ import {
   RepoIcon,
   SearchIcon,
 } from "@primer/octicons-react";
+import { api } from "../api";
 import { useProjectsCtx } from "../lib/projects";
 
 interface Cmd {
@@ -19,47 +21,84 @@ interface Cmd {
   to: string;
 }
 
-// ⌘K palette. Indexes projects (from context) and static nav pages — no extra
-// fetches. Cross-project object search is intentionally out of scope (would need
-// per-project fetches or a backend search endpoint).
+const PAGES: Cmd[] = [
+  { group: "Go to", label: "All projects", icon: <RepoIcon />, to: "/" },
+  { group: "Go to", label: "Settings", icon: <GearIcon />, to: "/settings/account" },
+  { group: "Go to", label: "Access tokens", icon: <KeyIcon />, to: "/settings/tokens" },
+  { group: "Go to", label: "Appearance", icon: <PaintbrushIcon />, to: "/settings/appearance" },
+  { group: "Go to", label: "Activity", icon: <PulseIcon />, to: "/settings/activity" },
+  { group: "Go to", label: "Users", icon: <PeopleIcon />, to: "/settings/users" },
+];
+
+// ⌘K palette. Indexes projects + nav pages locally (from context, no fetch) and,
+// when there's a query, objects across all accessible projects via /search.
 export default function CommandPalette({ open, onClose }: { open: boolean; onClose: () => void }) {
   const nav = useNavigate();
   const { projects } = useProjectsCtx();
   const [q, setQ] = useState("");
   const [sel, setSel] = useState(0);
+  const [objects, setObjects] = useState<Cmd[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!open) return;
     setQ("");
     setSel(0);
+    setObjects([]);
     const t = setTimeout(() => inputRef.current?.focus(), 20);
     return () => clearTimeout(t);
   }, [open]);
 
-  const all = useMemo<Cmd[]>(() => {
-    const projectCmds: Cmd[] = projects.map((p) => ({
-      group: "Projects",
-      label: p.name,
-      meta: p.slug,
-      icon: <RepoIcon />,
-      to: `/projects/${p.slug}`,
-    }));
-    const pages: Cmd[] = [
-      { group: "Go to", label: "All projects", icon: <RepoIcon />, to: "/" },
-      { group: "Go to", label: "Settings", icon: <GearIcon />, to: "/settings/account" },
-      { group: "Go to", label: "Access tokens", icon: <KeyIcon />, to: "/settings/tokens" },
-      { group: "Go to", label: "Appearance", icon: <PaintbrushIcon />, to: "/settings/appearance" },
-      { group: "Go to", label: "Activity", icon: <PulseIcon />, to: "/settings/activity" },
-      { group: "Go to", label: "Users", icon: <PeopleIcon />, to: "/settings/users" },
-    ];
-    return [...projectCmds, ...pages];
-  }, [projects]);
+  const projectCmds = useMemo<Cmd[]>(
+    () =>
+      projects.map((p) => ({
+        group: "Projects",
+        label: p.name,
+        meta: p.slug,
+        icon: <RepoIcon />,
+        to: `/projects/${p.slug}`,
+      })),
+    [projects],
+  );
+
+  // Debounced cross-project object search (only while open + non-empty query).
+  useEffect(() => {
+    const ql = q.trim();
+    if (!open || !ql) {
+      setObjects([]);
+      return;
+    }
+    let alive = true;
+    const t = setTimeout(() => {
+      api
+        .searchConfigs(ql)
+        .then((hits) => {
+          if (!alive) return;
+          setObjects(
+            hits.map((h) => ({
+              group: "Objects",
+              label: h.name,
+              meta: h.project_slug,
+              icon: <FileIcon />,
+              to: `/projects/${h.project_slug}/configs/${h.config_id}`,
+            })),
+          );
+        })
+        .catch(() => alive && setObjects([]));
+    }, 200);
+    return () => {
+      alive = false;
+      clearTimeout(t);
+    };
+  }, [q, open]);
 
   const results = useMemo(() => {
     const ql = q.trim().toLowerCase();
-    return ql ? all.filter((c) => `${c.label} ${c.meta ?? ""}`.toLowerCase().includes(ql)) : all;
-  }, [all, q]);
+    if (!ql) return [...projectCmds, ...PAGES];
+    const match = (c: Cmd) => `${c.label} ${c.meta ?? ""}`.toLowerCase().includes(ql);
+    // Order groups consistently: Projects, Objects, then pages.
+    return [...projectCmds.filter(match), ...objects, ...PAGES.filter(match)];
+  }, [projectCmds, objects, q]);
 
   // Keep the selection in range as the result set shrinks/grows.
   useEffect(() => {
