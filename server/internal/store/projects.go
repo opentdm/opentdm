@@ -60,6 +60,35 @@ func (q *Queries) ListProjects(ctx context.Context) ([]model.Project, error) {
 const projectColsP = `p.id, p.slug, p.name, COALESCE(p.description,''), p.created_by,
 	p.dek_wrapped, p.dek_key_ref, p.dek_version, p.crypto_version, p.archived_at, p.created_at, p.updated_at`
 
+// CountsForProjects returns object/env/member counts keyed by project id, for
+// the projects-grid summary. One round-trip via correlated subqueries; absent
+// ids simply don't appear in the map (zero-valued on lookup).
+func (q *Queries) CountsForProjects(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID]model.ProjectCounts, error) {
+	out := make(map[uuid.UUID]model.ProjectCounts, len(ids))
+	if len(ids) == 0 {
+		return out, nil
+	}
+	rows, err := q.db.Query(ctx, `
+		SELECT p.id,
+		  (SELECT COUNT(*) FROM configs c WHERE c.project_id = p.id AND c.archived_at IS NULL),
+		  (SELECT COUNT(*) FROM environments e WHERE e.project_id = p.id),
+		  (SELECT COUNT(*) FROM project_members m WHERE m.project_id = p.id)
+		FROM projects p WHERE p.id = ANY($1)`, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id uuid.UUID
+		var c model.ProjectCounts
+		if err := rows.Scan(&id, &c.Objects, &c.Envs, &c.Members); err != nil {
+			return nil, err
+		}
+		out[id] = c
+	}
+	return out, rows.Err()
+}
+
 // ListProjectsForUser returns the non-archived projects a user is a member of,
 // newest first, paired with the user's role on each.
 func (q *Queries) ListProjectsForUser(ctx context.Context, userID uuid.UUID) ([]model.Project, []string, error) {

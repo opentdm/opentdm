@@ -4,6 +4,7 @@ import {
   FileIcon,
   GearIcon,
   KeyIcon,
+  LockIcon,
   PaintbrushIcon,
   PeopleIcon,
   PulseIcon,
@@ -75,13 +76,16 @@ export default function CommandPalette({ open, onClose }: { open: boolean; onClo
         .then((hits) => {
           if (!alive) return;
           setObjects(
-            hits.map((h) => ({
-              group: "Objects",
-              label: h.name,
-              meta: h.project_slug,
-              icon: <FileIcon />,
-              to: `/projects/${h.project_slug}/configs/${h.config_id}`,
-            })),
+            hits.map((h) => {
+              const Icon = h.is_secret ? LockIcon : h.kind === "file" ? FileIcon : KeyIcon;
+              return {
+                group: "Objects",
+                label: h.name,
+                meta: h.project_slug,
+                icon: <Icon />,
+                to: `/projects/${h.project_slug}/configs/${h.config_id}`,
+              };
+            }),
           );
         })
         .catch(() => alive && setObjects([]));
@@ -148,7 +152,7 @@ export default function CommandPalette({ open, onClose }: { open: boolean; onClo
               setQ(e.target.value);
               setSel(0);
             }}
-            placeholder="Jump to a project or page…"
+            placeholder="Jump to a project, object, or page…"
             aria-label="Search projects and pages"
           />
           <kbd>esc</kbd>

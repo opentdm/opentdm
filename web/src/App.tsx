@@ -110,7 +110,7 @@ function Shell({ me, onLogout }: { me: User; onLogout: () => void }) {
       <Box className="otdm-app">
         <Sidebar me={me} onSignOut={logout} onSearch={() => setCmdkOpen(true)} />
         <Box className="otdm-content">
-          <Topbar />
+          <Topbar onOpenPalette={() => setCmdkOpen(true)} />
           <Box className="otdm-content-inner">
             <div className="otdm-page" key={pathname}>
               <Routes>

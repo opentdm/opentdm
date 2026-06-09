@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react";
 import { Box, Button, Flash, Label, Spinner, Text } from "../ui/primer";
 import { AuditEntry, auditLabel } from "../api";
+import Avatar from "./Avatar";
+
+function statusVariant(status: number): "success" | "attention" | "danger" | "secondary" {
+  if (status >= 200 && status < 300) return "success";
+  if (status >= 300 && status < 400) return "attention";
+  if (status >= 400) return "danger";
+  return "secondary";
+}
 
 function relativeTime(iso: string): string {
   const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
@@ -73,6 +81,7 @@ export default function AuditFeed({ load }: AuditFeedProps) {
                 borderColor: "border.muted",
               }}
             >
+              <Avatar name={e.actor} size={26} />
               <Text sx={{ fontWeight: "bold" }}>{e.actor || "unknown"}</Text>
               <Text>{auditLabel(e.action)}</Text>
               {e.target_type && <Label variant="secondary">{e.target_type}</Label>}
@@ -80,6 +89,7 @@ export default function AuditFeed({ load }: AuditFeedProps) {
               <Text sx={{ color: "fg.muted", fontSize: 0 }} title={new Date(e.created_at).toLocaleString()}>
                 {relativeTime(e.created_at)}
               </Text>
+              <Label variant={statusVariant(e.status)}>{e.status}</Label>
             </Box>
           ))}
         </Box>

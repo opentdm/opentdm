@@ -1,12 +1,13 @@
 import { FormEvent, Fragment, useMemo, useState } from "react";
 import { Box, Button, Dialog, Flash, FormControl, Heading, Select, Spinner, TextInput } from "../ui/primer";
-import { PlusIcon, SearchIcon, StarIcon } from "@primer/octicons-react";
+import { PlusIcon, SearchIcon, StarFillIcon } from "@primer/octicons-react";
 import { Project } from "../api";
 import { api } from "../api";
 import { useProjectsCtx } from "../lib/projects";
 import { useFavourites } from "../lib/favourites";
 import { useToast } from "../lib/toast";
 import ProjectCard from "../components/ProjectCard";
+import Overline from "../components/Overline";
 
 type SortKey = "name" | "role" | "recent";
 type GroupKey = "none" | "role";
@@ -49,6 +50,7 @@ export default function Projects() {
     <Box>
       <Box className="otdm-page-hd">
         <Box className="grow">
+          <Overline>Workspace</Overline>
           <Heading sx={{ fontSize: 5 }}>Projects</Heading>
           <Box className="otdm-sub">Typed config, fixtures &amp; secrets — scoped per project, per environment.</Box>
         </Box>
@@ -113,7 +115,7 @@ export default function Projects() {
             <>
               <Box className="otdm-section-hd">
                 <span className="otdm-sb-ico">
-                  <StarIcon size={16} />
+                  <StarFillIcon size={16} fill="#d4a72c" />
                 </span>
                 <h2>Pinned</h2>
                 <span className="count">{pinned.length}</span>

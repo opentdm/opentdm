@@ -13,6 +13,8 @@ import (
 type searchHitDTO struct {
 	ConfigID    string `json:"config_id"`
 	Name        string `json:"name"`
+	Kind        string `json:"kind"`
+	IsSecret    bool   `json:"is_secret"`
 	ProjectSlug string `json:"project_slug"`
 	ProjectName string `json:"project_name"`
 }
@@ -31,6 +33,8 @@ func (h *Handlers) handleSearch(w http.ResponseWriter, r *http.Request) {
 		out = append(out, searchHitDTO{
 			ConfigID:    hit.ConfigID.String(),
 			Name:        hit.ConfigName,
+			Kind:        hit.Kind,
+			IsSecret:    hit.IsSecret,
 			ProjectSlug: hit.ProjectSlug,
 			ProjectName: hit.ProjectName,
 		})
@@ -63,9 +67,14 @@ func (h *Handlers) handleListConfigs(w http.ResponseWriter, r *http.Request) {
 		h.writeErr(w, r, err)
 		return
 	}
+	keyCounts, err := h.svc.BaseKeyCounts(r.Context(), p.ID)
+	if err != nil {
+		h.writeErr(w, r, err)
+		return
+	}
 	out := make([]configDTO, 0, len(configs))
 	for _, c := range configs {
-		out = append(out, toConfigDTO(c))
+		out = append(out, toConfigListDTO(c, keyCounts[c.ID]))
 	}
 	WriteJSON(w, http.StatusOK, out, nil)
 }

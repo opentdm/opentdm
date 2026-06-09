@@ -22,7 +22,7 @@ export default function BranchEnvMenu({ value, envs, onChange }: BranchEnvMenuPr
       </ActionMenu.Anchor>
       <ActionMenu.Overlay width="small">
         <ActionList>
-          <ActionList.Group title="switch environment">
+          <ActionList.Group title="Switch environment">
             {options.map((opt) => (
               <ActionList.Item key={opt} onSelect={() => onChange(opt)}>
                 <ActionList.LeadingVisual>{opt === value ? <CheckIcon /> : <span />}</ActionList.LeadingVisual>

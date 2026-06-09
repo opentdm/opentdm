@@ -8,9 +8,9 @@ import {
   StarFillIcon,
   GearIcon,
   SignOutIcon,
-  PersonIcon,
   SearchIcon,
 } from "@primer/octicons-react";
+import Avatar from "./Avatar";
 import { User } from "../api";
 import { useProjectsCtx } from "../lib/projects";
 import { useFavourites } from "../lib/favourites";
@@ -35,7 +35,9 @@ export default function Sidebar({
   return (
     <aside className="otdm-sidebar">
       <RouterLink to="/" className="otdm-sb-brand">
-        <PackageIcon size={22} />
+        <span className="otdm-sb-logo">
+          <PackageIcon size={22} />
+        </span>
         opentdm
       </RouterLink>
 
@@ -95,9 +97,7 @@ export default function Sidebar({
           <span className="otdm-sb-label">Settings</span>
         </RouterLink>
         <div className="otdm-sb-user">
-          <span className="otdm-sb-ico">
-            <PersonIcon size={16} />
-          </span>
+          <Avatar name={me.username} size={22} />
           <span className="otdm-sb-label" title={me.email}>
             {me.username}
           </span>

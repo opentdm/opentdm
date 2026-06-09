@@ -45,6 +45,16 @@
 .otdm-sb-brand:hover {
   color: var(--fgColor-accent);
 }
+.otdm-sb-logo {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  color: #fff;
+  background: var(--bgColor-accent-emphasis);
+  flex: none;
+}
 .otdm-sb-scroll {
   flex: 1;
   overflow-y: auto;

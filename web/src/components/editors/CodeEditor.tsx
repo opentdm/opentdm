@@ -94,6 +94,7 @@ export default function CodeEditor({ slug, config, layer, readOnly }: CodeEditor
           </Box>
           <Text sx={{ color: "fg.muted", fontSize: 0, display: "block", mt: 2 }}>
             Editing the <b>{layer}</b> layer. File content fully replaces the layer on save.
+            {layer !== "base" && " Overrides the base layer."}
           </Text>
         </>
       )}

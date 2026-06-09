@@ -81,6 +81,26 @@ func (q *Queries) ListVersions(ctx context.Context, configID uuid.UUID, envID *u
 	return out, rows.Err()
 }
 
+// ListVersionsFull returns every version for a layer WITH its ciphertext,
+// oldest first — used to compute per-version deltas. Heavier than ListVersions
+// (loads payloads); callers should bound how many they decrypt.
+func (q *Queries) ListVersionsFull(ctx context.Context, configID uuid.UUID, envID *uuid.UUID) ([]model.ConfigVersion, error) {
+	rows, err := q.db.Query(ctx, "SELECT "+versionFullCols+" FROM config_versions WHERE "+layerPred+" ORDER BY version ASC", configID, envID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []model.ConfigVersion
+	for rows.Next() {
+		v, err := scanVersionFull(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, v)
+	}
+	return out, rows.Err()
+}
+
 // GetVersion returns one version (with ciphertext) by number.
 func (q *Queries) GetVersion(ctx context.Context, configID uuid.UUID, envID *uuid.UUID, version int) (model.ConfigVersion, error) {
 	row := q.db.QueryRow(ctx, "SELECT "+versionFullCols+" FROM config_versions WHERE "+layerPred+" AND version = $3", configID, envID, version)

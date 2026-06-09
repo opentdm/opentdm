@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
-import { Box, Button, Flash, Heading, Label, Spinner, Text } from "../../ui/primer";
+import { Box, Button, Checkbox, Flash, FormControl, Heading, Label, Spinner, Text } from "../../ui/primer";
 import { AdminUser, api } from "../../api";
+import Overline from "../Overline";
+import Avatar from "../Avatar";
 
 // Instance user directory (admin only). Moved from the old /users page into the
 // consolidated Settings → Instance admin → Users panel.
-export default function UsersPanel() {
+export default function UsersPanel({ meId }: { meId?: string }) {
   const [users, setUsers] = useState<AdminUser[] | null>(null);
   const [err, setErr] = useState("");
 
@@ -34,9 +36,10 @@ export default function UsersPanel() {
 
   return (
     <Box>
+      <Overline>Instance admin</Overline>
       <Heading sx={{ fontSize: 3, mb: 1 }}>Users</Heading>
       <Text sx={{ color: "fg.muted", display: "block", mb: 3 }}>
-        Instance users. New users join via project invitations; here you can grant admin or deactivate accounts.
+        Everyone with an account on this opentdm instance.
       </Text>
       {err && (
         <Flash variant="danger" sx={{ mb: 3 }}>
@@ -58,16 +61,18 @@ export default function UsersPanel() {
               borderColor: "border.muted",
             }}
           >
+            <Avatar name={u.username} size={28} />
             <Box>
-              <Text sx={{ fontWeight: "bold" }}>{u.username}</Text>
+              <Text sx={{ fontWeight: "bold" }}>{u.username}{u.id === meId ? " (you)" : ""}</Text>
               <Text sx={{ color: "fg.muted", fontSize: 0, display: "block" }}>{u.email}</Text>
             </Box>
             {u.is_admin && <Label variant="accent">admin</Label>}
             {!u.is_active && <Label variant="danger">deactivated</Label>}
             <Box sx={{ flex: 1 }} />
-            <Button size="small" onClick={() => toggle(u, { is_admin: !u.is_admin })}>
-              {u.is_admin ? "Revoke admin" : "Make admin"}
-            </Button>
+            <FormControl>
+              <Checkbox checked={u.is_admin} onChange={() => toggle(u, { is_admin: !u.is_admin })} />
+              <FormControl.Label>Admin</FormControl.Label>
+            </FormControl>
             <Button
               size="small"
               variant={u.is_active ? "danger" : "default"}

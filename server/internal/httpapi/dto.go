@@ -13,6 +13,9 @@ type projectDTO struct {
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
 	YourRole    string    `json:"your_role,omitempty"`
+	ObjectCount int       `json:"object_count"`
+	EnvCount    int       `json:"env_count"`
+	MemberCount int       `json:"member_count"`
 	CreatedAt   time.Time `json:"created_at"`
 }
 
@@ -23,6 +26,15 @@ func toProjectDTO(p model.Project) projectDTO {
 func toProjectDTOWithRole(p model.Project, role string) projectDTO {
 	d := toProjectDTO(p)
 	d.YourRole = role
+	return d
+}
+
+// toProjectListDTO is the projects-grid shape: role + summary counts.
+func toProjectListDTO(p app.ProjectWithRole) projectDTO {
+	d := toProjectDTOWithRole(p.Project, p.Role)
+	d.ObjectCount = p.Counts.Objects
+	d.EnvCount = p.Counts.Envs
+	d.MemberCount = p.Counts.Members
 	return d
 }
 
@@ -96,6 +108,7 @@ type configDTO struct {
 	SortOrder   int       `json:"sort_order"`
 	Description string    `json:"description"`
 	IsSecret    bool      `json:"is_secret"`
+	KeyCount    int       `json:"key_count"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
@@ -105,6 +118,13 @@ func toConfigDTO(c model.Config) configDTO {
 		ID: c.ID.String(), Kind: c.Kind, Format: c.Format, Name: c.Name, SortOrder: c.SortOrder,
 		Description: c.Description, IsSecret: c.IsSecret, CreatedAt: c.CreatedAt, UpdatedAt: c.UpdatedAt,
 	}
+}
+
+// toConfigListDTO adds the base-layer key count for the objects list.
+func toConfigListDTO(c model.Config, keyCount int) configDTO {
+	d := toConfigDTO(c)
+	d.KeyCount = keyCount
+	return d
 }
 
 type tokenDTO struct {
@@ -153,6 +173,9 @@ type versionMetaDTO struct {
 	Kind      string    `json:"kind"`
 	ByteSize  int64     `json:"byte_size"`
 	Comment   string    `json:"comment,omitempty"`
+	Added     int       `json:"added"`
+	Changed   int       `json:"changed"`
+	Removed   int       `json:"removed"`
 	CreatedBy *string   `json:"created_by"`
 	CreatedAt time.Time `json:"created_at"`
 }
@@ -170,6 +193,13 @@ func toVersionMetaDTO(v model.ConfigVersion) versionMetaDTO {
 		d.CreatedBy = &s
 	}
 	return d
+}
+
+// toVersionMetaDTOWithDelta adds the per-version add/change/remove counts.
+func toVersionMetaDTOWithDelta(v model.ConfigVersion, d app.VersionDelta) versionMetaDTO {
+	out := toVersionMetaDTO(v)
+	out.Added, out.Changed, out.Removed = d.Added, d.Changed, d.Removed
+	return out
 }
 
 type varDiffEntryDTO struct {

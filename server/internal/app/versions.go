@@ -24,6 +24,81 @@ func (s *Service) ListVersions(ctx context.Context, project model.Project, confi
 	return s.store.Q().ListVersions(ctx, config.ID, envID)
 }
 
+// VersionDelta is one version's change counts relative to the immediately
+// previous version (the first version is measured against the empty snapshot).
+type VersionDelta struct {
+	Added   int
+	Changed int
+	Removed int
+}
+
+// maxDeltaVersions bounds the read-time delta computation, which decrypts every
+// snapshot in the layer's history. Longer histories skip deltas rather than do
+// unbounded crypto work on each version-list load.
+const maxDeltaVersions = 200
+
+// ListVersionsWithDeltas returns version metadata (newest first) plus per-version
+// add/change/remove counts keyed by version number, for variable configs. Deltas
+// are best-effort: any decrypt/parse failure (or a file config, or an overlong
+// history) yields an empty delta map rather than failing the listing.
+func (s *Service) ListVersionsWithDeltas(ctx context.Context, project model.Project, config model.Config, envSlug string) ([]model.ConfigVersion, map[int]VersionDelta, error) {
+	envID, envAAD, err := s.layer(ctx, project.ID, envSlug)
+	if err != nil {
+		return nil, nil, err
+	}
+	metas, err := s.store.Q().ListVersions(ctx, config.ID, envID)
+	if err != nil {
+		return nil, nil, err
+	}
+	deltas := map[int]VersionDelta{}
+	if config.Kind != model.KindVariable || len(metas) == 0 || len(metas) > maxDeltaVersions {
+		return metas, deltas, nil
+	}
+	full, err := s.store.Q().ListVersionsFull(ctx, config.ID, envID)
+	if err != nil {
+		return nil, nil, err
+	}
+	cipher, err := s.cipherFor(project)
+	if err != nil {
+		return metas, map[int]VersionDelta{}, nil // best-effort: no deltas
+	}
+	var prev map[string]codec.SnapshotItem
+	for _, v := range full { // ascending
+		plain, err := cipher.Open(v.SnapshotCiphertext, crypto.VersionAAD(project.ID.String(), envAAD, config.ID.String(), v.SnapshotKind))
+		if err != nil {
+			return metas, map[int]VersionDelta{}, nil
+		}
+		cur, err := snapshotMap(plain)
+		if err != nil {
+			return metas, map[int]VersionDelta{}, nil
+		}
+		deltas[v.Version] = deltaCounts(prev, cur)
+		prev = cur
+	}
+	return metas, deltas, nil
+}
+
+// deltaCounts counts added/changed/removed keys from one snapshot map to the
+// next (a nil `from` means every key in `to` is an addition).
+func deltaCounts(from, to map[string]codec.SnapshotItem) VersionDelta {
+	var d VersionDelta
+	for k, t := range to {
+		f, ok := from[k]
+		switch {
+		case !ok:
+			d.Added++
+		case f.Value != t.Value || f.IsSecret != t.IsSecret:
+			d.Changed++
+		}
+	}
+	for k := range from {
+		if _, ok := to[k]; !ok {
+			d.Removed++
+		}
+	}
+	return d
+}
+
 // VersionSnapshot is a decrypted snapshot for one version.
 type VersionSnapshot struct {
 	Version int

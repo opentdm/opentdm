@@ -1,7 +1,9 @@
 import { FormEvent, useState } from "react";
+import { ShieldLockIcon } from "@primer/octicons-react";
 import { Box, Button, Flash, FormControl, Heading, Label, Text, TextInput } from "../../ui/primer";
 import { api, User } from "../../api";
 import { useToast } from "../../lib/toast";
+import Overline from "../Overline";
 
 function initials(name: string): string {
   const parts = name.split(/[.\-_@\s]+/).filter(Boolean);
@@ -64,6 +66,7 @@ export default function ProfilePanel({ me }: { me: User }) {
 
   return (
     <Box>
+      <Overline>Account</Overline>
       <Heading sx={{ fontSize: 3, mb: 1 }}>Profile</Heading>
       <Text sx={{ color: "fg.muted", display: "block", mb: 3 }}>
         Your account identity. Username is fixed — it's used in audit logs and login.
@@ -81,6 +84,10 @@ export default function ProfilePanel({ me }: { me: User }) {
           <Text sx={{ color: "fg.muted", display: "block" }}>{savedEmail}</Text>
         </Box>
       </Box>
+
+      <Flash sx={{ mb: 4 }}>
+        <ShieldLockIcon /> Profile is managed by your instance admin.
+      </Flash>
 
       <Box as="form" onSubmit={saveEmail} sx={{ display: "grid", gap: 2, maxWidth: 420, mb: 4 }}>
         {emailErr && <Flash variant="danger">{emailErr}</Flash>}
