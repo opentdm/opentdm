@@ -31,7 +31,7 @@ var variableFormats = map[string]bool{
 	model.FormatEnv: true, model.FormatProperties: true, model.FormatSecret: true,
 }
 var fileFormats = map[string]bool{
-	model.FormatJSON: true, model.FormatCSV: true, model.FormatXML: true,
+	model.FormatJSON: true, model.FormatCSV: true, model.FormatXML: true, model.FormatYAML: true,
 }
 
 // envOnlyMode gates config CREATION to variable/env configs. It is a reversible

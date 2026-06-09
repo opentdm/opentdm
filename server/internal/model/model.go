@@ -20,6 +20,7 @@ const (
 	FormatJSON       = "json"
 	FormatCSV        = "csv"
 	FormatXML        = "xml"
+	FormatYAML       = "yaml"
 
 	ScopeRead  = "read"
 	ScopeWrite = "write"
