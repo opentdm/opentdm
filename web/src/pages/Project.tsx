@@ -23,18 +23,21 @@ export default function ProjectPage() {
   const [project, setProject] = useState<Project | null>(null);
   const [envs, setEnvs] = useState<Environment[]>([]);
   const [configs, setConfigs] = useState<Config[]>([]);
+  const [memberCount, setMemberCount] = useState<number | null>(null);
   const [err, setErr] = useState("");
 
   async function loadAll() {
     try {
-      const [p, e, c] = await Promise.all([
+      const [p, e, c, m] = await Promise.all([
         api.get<Project>(`/projects/${slug}`),
         api.listEnvs(slug),
         api.get<Config[]>(`/projects/${slug}/configs`),
+        api.listMembers(slug),
       ]);
       setProject(p);
       setEnvs(e);
       setConfigs(c);
+      setMemberCount(m.length);
     } catch (e: any) {
       setErr(e.message);
     }
@@ -79,6 +82,27 @@ export default function ProjectPage() {
         </Button>
       </Box>
       {err && <Flash variant="danger">{err}</Flash>}
+
+      <Box className="otdm-meta-grid">
+        <div className="otdm-meta-cell">
+          <div className="k">Objects</div>
+          <div className="v">{configs.length}</div>
+        </div>
+        <div className="otdm-meta-cell">
+          <div className="k">Environments</div>
+          <div className="v">{envs.length}</div>
+        </div>
+        <div className="otdm-meta-cell">
+          <div className="k">Members</div>
+          <div className="v">{memberCount ?? "—"}</div>
+        </div>
+        <div className="otdm-meta-cell">
+          <div className="k">Your role</div>
+          <div className="v" style={{ textTransform: "capitalize" }}>
+            {project.your_role ?? "—"}
+          </div>
+        </div>
+      </Box>
 
       <ObjectsSection slug={slug} configs={configs} envs={envs} canWrite={canWrite(project.your_role)} onChange={loadAll} />
     </Box>
