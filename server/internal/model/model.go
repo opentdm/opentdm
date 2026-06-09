@@ -3,6 +3,7 @@
 package model
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -52,6 +53,16 @@ type User struct {
 	IsActive     bool
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
+	// Preferences is the raw jsonb blob as stored; the typed shape is
+	// UserPreferences. Defaults to "{}" via the DB column default.
+	Preferences json.RawMessage
+}
+
+// UserPreferences is the typed shape of User.Preferences — per-user UI state
+// that follows the account (theme + favourite project slugs).
+type UserPreferences struct {
+	ColorMode  string   `json:"color_mode,omitempty"`
+	Favourites []string `json:"favourites,omitempty"`
 }
 
 // ProjectMember is a user's role on a project (Username/Email joined for display).

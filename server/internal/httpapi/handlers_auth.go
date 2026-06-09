@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"net/http"
 
 	"github.com/opentdm/opentdm/server/internal/crypto"
@@ -9,14 +10,19 @@ import (
 )
 
 type userDTO struct {
-	ID       string `json:"id"`
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	IsAdmin  bool   `json:"is_admin"`
+	ID          string          `json:"id"`
+	Username    string          `json:"username"`
+	Email       string          `json:"email"`
+	IsAdmin     bool            `json:"is_admin"`
+	Preferences json.RawMessage `json:"preferences"`
 }
 
 func toUserDTO(u model.User) userDTO {
-	return userDTO{ID: u.ID.String(), Username: u.Username, Email: u.Email, IsAdmin: u.IsAdmin}
+	prefs := u.Preferences
+	if len(prefs) == 0 {
+		prefs = json.RawMessage("{}")
+	}
+	return userDTO{ID: u.ID.String(), Username: u.Username, Email: u.Email, IsAdmin: u.IsAdmin, Preferences: prefs}
 }
 
 // GET /api/v1/auth/setup -> whether first-run setup is needed.
@@ -90,4 +96,20 @@ func (h *Handlers) handleLogout(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) handleMe(w http.ResponseWriter, r *http.Request) {
 	u, _ := userFrom(r.Context())
 	WriteJSON(w, http.StatusOK, toUserDTO(u), nil)
+}
+
+// handleUpdatePreferences replaces the signed-in user's UI preferences (theme +
+// favourite project slugs). Session-authenticated; the body is the full prefs.
+func (h *Handlers) handleUpdatePreferences(w http.ResponseWriter, r *http.Request) {
+	u, _ := userFrom(r.Context())
+	var prefs model.UserPreferences
+	if err := decodeJSON(w, r, &prefs); err != nil {
+		return
+	}
+	updated, err := h.svc.UpdatePreferences(r.Context(), u.ID, prefs)
+	if err != nil {
+		h.writeErr(w, r, err)
+		return
+	}
+	WriteJSON(w, http.StatusOK, toUserDTO(updated), nil)
 }

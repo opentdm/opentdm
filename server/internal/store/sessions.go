@@ -24,7 +24,7 @@ func (q *Queries) CreateSession(ctx context.Context, userID uuid.UUID, tokenHash
 // session, or ErrNotFound.
 func (q *Queries) GetUserBySessionHash(ctx context.Context, tokenHash []byte) (model.User, error) {
 	row := q.db.QueryRow(ctx, `
-		SELECT u.id, u.username, u.email, u.password_hash, u.is_admin, u.is_active, u.created_at, u.updated_at
+		SELECT u.id, u.username, u.email, u.password_hash, u.is_admin, u.is_active, u.created_at, u.updated_at, u.preferences
 		FROM sessions s JOIN users u ON u.id = s.user_id
 		WHERE s.token_hash = $1 AND s.revoked_at IS NULL AND s.expires_at > now() AND u.is_active`, tokenHash)
 	u, err := scanUser(row)

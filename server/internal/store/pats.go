@@ -30,13 +30,13 @@ func (q *Queries) CreateUserPAT(ctx context.Context, p model.UserPAT, tokenHash 
 // user still active) plus the PAT id (for last-used tracking), or ErrNotFound.
 func (q *Queries) GetUserByPATHash(ctx context.Context, tokenHash []byte) (model.User, uuid.UUID, error) {
 	row := q.db.QueryRow(ctx, `
-		SELECT u.id, u.username, u.email, u.password_hash, u.is_admin, u.is_active, u.created_at, u.updated_at, p.id
+		SELECT u.id, u.username, u.email, u.password_hash, u.is_admin, u.is_active, u.created_at, u.updated_at, u.preferences, p.id
 		FROM user_pats p JOIN users u ON u.id = p.user_id
 		WHERE p.token_hash = $1 AND p.revoked_at IS NULL
 		  AND (p.expires_at IS NULL OR p.expires_at > now()) AND u.is_active`, tokenHash)
 	var u model.User
 	var patID uuid.UUID
-	err := row.Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.IsAdmin, &u.IsActive, &u.CreatedAt, &u.UpdatedAt, &patID)
+	err := row.Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.IsAdmin, &u.IsActive, &u.CreatedAt, &u.UpdatedAt, &u.Preferences, &patID)
 	return u, patID, mapNoRows(err)
 }
 

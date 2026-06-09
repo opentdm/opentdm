@@ -6,6 +6,7 @@ import Sidebar from "./components/Sidebar";
 import Topbar from "./components/Topbar";
 import CommandPalette from "./components/CommandPalette";
 import { ProjectsProvider } from "./lib/projects";
+import { hydratePreferences } from "./lib/preferences";
 import Setup from "./pages/Setup";
 import Login from "./pages/Login";
 import Projects from "./pages/Projects";
@@ -32,7 +33,9 @@ export default function App() {
       /* ignore */
     }
     try {
-      setMe(await api.get<User>("/auth/me"));
+      const user = await api.get<User>("/auth/me");
+      hydratePreferences(user.preferences);
+      setMe(user);
     } catch {
       setMe(null);
     }
