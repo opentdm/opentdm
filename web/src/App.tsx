@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { Box, Spinner } from "./ui/primer";
 import { api, User } from "./api";
 import Sidebar from "./components/Sidebar";
+import Topbar from "./components/Topbar";
 import CommandPalette from "./components/CommandPalette";
 import { ProjectsProvider } from "./lib/projects";
 import Setup from "./pages/Setup";
@@ -82,6 +83,7 @@ export default function App() {
 
 function Shell({ me, onLogout }: { me: User; onLogout: () => void }) {
   const nav = useNavigate();
+  const { pathname } = useLocation();
   const [cmdkOpen, setCmdkOpen] = useState(false);
   async function logout() {
     await api.post("/auth/logout");
@@ -105,8 +107,10 @@ function Shell({ me, onLogout }: { me: User; onLogout: () => void }) {
       <Box className="otdm-app">
         <Sidebar me={me} onSignOut={logout} onSearch={() => setCmdkOpen(true)} />
         <Box className="otdm-content">
+          <Topbar />
           <Box className="otdm-content-inner">
-            <Routes>
+            <div className="otdm-page" key={pathname}>
+              <Routes>
               <Route path="/" element={<Projects />} />
               <Route path="/projects/:slug" element={<ProjectPage />} />
               <Route path="/projects/:slug/configs/:configId" element={<ObjectPage />} />
@@ -118,7 +122,8 @@ function Shell({ me, onLogout }: { me: User; onLogout: () => void }) {
               <Route path="/users" element={<Navigate to="/settings/users" replace />} />
               <Route path="/activity" element={<Navigate to="/settings/activity" replace />} />
               <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+              </Routes>
+            </div>
           </Box>
         </Box>
       </Box>

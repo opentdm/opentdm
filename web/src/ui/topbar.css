@@ -1,0 +1,18 @@
+/* Slim global topbar holding the route breadcrumbs. Sticky to the viewport top
+   while the content column scrolls. Primer functional vars for theme tracking. */
+.otdm-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 32px;
+  border-bottom: 1px solid var(--borderColor-default);
+  background: var(--bgColor-default);
+}
+@media (max-width: 720px) {
+  .otdm-topbar {
+    padding: 0 18px;
+  }
+}

@@ -17,6 +17,8 @@ import "@primer/primitives/dist/css/functional/themes/dark.css";
 // Primer theme CSS so its equal-specificity rules win on cascade order.
 import "./ui/tokens.css";
 import "./ui/compat.css";
+import "./ui/anim.css";
+import "./ui/topbar.css";
 import "./ui/shell.css";
 import "./ui/settings.css";
 import "./ui/cmdk.css";
