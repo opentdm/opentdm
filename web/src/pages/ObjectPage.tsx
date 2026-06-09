@@ -1,10 +1,9 @@
 import { FormEvent, useEffect, useState } from "react";
-import { Link as RouterLink, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   ActionList,
   ActionMenu,
   Box,
-  Breadcrumbs,
   Button,
   ConfirmationDialog,
   Flash,
@@ -118,13 +117,6 @@ export default function ObjectPage() {
 
   return (
     <Box sx={{ display: "grid", gap: 3 }}>
-      <Breadcrumbs>
-        <Breadcrumbs.Item as={RouterLink} to={`/projects/${slug}`}>
-          {slug}
-        </Breadcrumbs.Item>
-        <Breadcrumbs.Item selected>{config.name}</Breadcrumbs.Item>
-      </Breadcrumbs>
-
       {err && <Flash variant="danger">{err}</Flash>}
       {readOnly && <Flash>You have read-only (viewer) access to this project.</Flash>}
 

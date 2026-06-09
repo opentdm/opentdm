@@ -1,0 +1,19 @@
+/* Entrance animations. Content is fully visible at rest (opacity 1); only the
+   transform/opacity transition is animated, and ONLY under
+   prefers-reduced-motion: no-preference — visibility is never gated on an
+   animation (a frozen animation clock in a preview env must not hide content). */
+@media (prefers-reduced-motion: no-preference) {
+  .otdm-page {
+    animation: otdm-page-in 0.18s ease-out;
+  }
+  @keyframes otdm-page-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}

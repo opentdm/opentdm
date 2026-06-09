@@ -1,8 +1,7 @@
 import { FormEvent, useEffect, useState } from "react";
-import { Link as RouterLink, useParams, useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import {
   Box,
-  Breadcrumbs,
   Button,
   Flash,
   FormControl,
@@ -55,15 +54,7 @@ export default function ProjectSettings() {
 
   return (
     <Box sx={{ display: "grid", gap: 3 }}>
-      <Box>
-        <Breadcrumbs>
-          <Breadcrumbs.Item as={RouterLink} to={`/projects/${slug}`}>
-            {slug}
-          </Breadcrumbs.Item>
-          <Breadcrumbs.Item selected>Settings</Breadcrumbs.Item>
-        </Breadcrumbs>
-        <Heading sx={{ fontSize: 4, mt: 2 }}>{project.name} settings</Heading>
-      </Box>
+      <Heading sx={{ fontSize: 4 }}>{project.name} settings</Heading>
 
       <UnderlineNav aria-label="Project settings">
         {TABS.map((t) => (
