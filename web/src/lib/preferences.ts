@@ -28,7 +28,13 @@ function migrateLegacy(): Preferences {
     const m = localStorage.getItem("otdm-color-mode");
     if (m && VALID_MODES.includes(m as ColorMode)) colorMode = m as ColorMode;
     const f = localStorage.getItem("otdm-favs");
-    if (f) favourites = JSON.parse(f) as string[];
+    if (f) {
+      const parsed: unknown = JSON.parse(f);
+      if (Array.isArray(parsed)) favourites = parsed.filter((x): x is string => typeof x === "string");
+    }
+    // One-time migration: drop the legacy per-feature keys.
+    localStorage.removeItem("otdm-color-mode");
+    localStorage.removeItem("otdm-favs");
   } catch {
     /* ignore */
   }

@@ -10,6 +10,7 @@ const contentType: Record<string, string> = {
   json: "application/json",
   xml: "application/xml",
   csv: "text/csv",
+  yaml: "application/yaml",
 };
 
 interface CodeEditorProps {
@@ -19,12 +20,13 @@ interface CodeEditorProps {
   readOnly?: boolean;
 }
 
-// JSON/XML object editor: a real code editor with Format + client-side
-// validate-on-save. The server's codec.ValidateFile is the authority — we
-// surface its detail — but blocking obviously-invalid content here avoids a
-// round-trip and gives instant feedback.
+// Code editor for json/xml/yaml file objects: a real code editor with
+// client-side validate-on-save (json/xml) and a Format action (json/xml only).
+// The server's codec.ValidateFile is the authority — we surface its detail —
+// but blocking obviously-invalid content here avoids a round-trip.
 export default function CodeEditor({ slug, config, layer, readOnly }: CodeEditorProps) {
-  const language: EditorLanguage = config.format === "json" ? "json" : "xml";
+  const canFormat = config.format === "json" || config.format === "xml";
+  const language: EditorLanguage = config.format === "json" ? "json" : config.format === "xml" ? "xml" : "text";
   const toast = useToast();
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
@@ -38,7 +40,7 @@ export default function CodeEditor({ slug, config, layer, readOnly }: CodeEditor
       .then(setText)
       .catch(() => setText("")) // no content for this layer yet
       .finally(() => setLoading(false));
-  }, [config.id, layer]);
+  }, [slug, config.id, layer]);
 
   function format() {
     setErr("");
@@ -88,7 +90,7 @@ export default function CodeEditor({ slug, config, layer, readOnly }: CodeEditor
             <Button variant="primary" onClick={save}>
               Save {layer}
             </Button>
-            <Button onClick={format}>Format</Button>
+            {canFormat && <Button onClick={format}>Format</Button>}
           </Box>
           <Text sx={{ color: "fg.muted", fontSize: 0, display: "block", mt: 2 }}>
             Editing the <b>{layer}</b> layer. File content fully replaces the layer on save.
