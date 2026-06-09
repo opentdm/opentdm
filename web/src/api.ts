@@ -1,11 +1,16 @@
 // Typed fetch wrapper for the opentdm API. Sends the session cookie and the
 // double-submit CSRF token on mutations.
 
+export interface UserPreferences {
+  color_mode?: string;
+  favourites?: string[];
+}
 export interface User {
   id: string;
   username: string;
   email: string;
   is_admin: boolean;
+  preferences?: UserPreferences;
 }
 export interface Project {
   id: string;

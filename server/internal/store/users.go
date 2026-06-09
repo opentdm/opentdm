@@ -26,14 +26,14 @@ func (q *Queries) CreateUser(ctx context.Context, u model.User) (model.User, err
 	row := q.db.QueryRow(ctx, `
 		INSERT INTO users (username, email, password_hash, is_admin)
 		VALUES ($1, $2, $3, $4)
-		RETURNING id, username, email, password_hash, is_admin, is_active, created_at, updated_at`,
+		RETURNING id, username, email, password_hash, is_admin, is_active, created_at, updated_at, preferences`,
 		u.Username, u.Email, u.PasswordHash, u.IsAdmin)
 	return scanUser(row)
 }
 
 func (q *Queries) GetUserByUsername(ctx context.Context, username string) (model.User, error) {
 	row := q.db.QueryRow(ctx, `
-		SELECT id, username, email, password_hash, is_admin, is_active, created_at, updated_at
+		SELECT id, username, email, password_hash, is_admin, is_active, created_at, updated_at, preferences
 		FROM users WHERE username = $1`, username)
 	u, err := scanUser(row)
 	return u, mapNoRows(err)
@@ -41,7 +41,7 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (model
 
 func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (model.User, error) {
 	row := q.db.QueryRow(ctx, `
-		SELECT id, username, email, password_hash, is_admin, is_active, created_at, updated_at
+		SELECT id, username, email, password_hash, is_admin, is_active, created_at, updated_at, preferences
 		FROM users WHERE id = $1`, id)
 	u, err := scanUser(row)
 	return u, mapNoRows(err)
@@ -49,7 +49,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (model.User, er
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (model.User, error) {
 	row := q.db.QueryRow(ctx, `
-		SELECT id, username, email, password_hash, is_admin, is_active, created_at, updated_at
+		SELECT id, username, email, password_hash, is_admin, is_active, created_at, updated_at, preferences
 		FROM users WHERE email = $1`, email)
 	u, err := scanUser(row)
 	return u, mapNoRows(err)
@@ -58,7 +58,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (model.User,
 // ListUsers returns all users, newest first (admin directory).
 func (q *Queries) ListUsers(ctx context.Context) ([]model.User, error) {
 	rows, err := q.db.Query(ctx, `
-		SELECT id, username, email, password_hash, is_admin, is_active, created_at, updated_at
+		SELECT id, username, email, password_hash, is_admin, is_active, created_at, updated_at, preferences
 		FROM users ORDER BY created_at`)
 	if err != nil {
 		return nil, err
@@ -90,7 +90,7 @@ func (q *Queries) UpdateUserFlags(ctx context.Context, id uuid.UUID, isActive, i
 			is_active = COALESCE($2, is_active),
 			is_admin  = COALESCE($3, is_admin)
 		WHERE id = $1
-		RETURNING id, username, email, password_hash, is_admin, is_active, created_at, updated_at`,
+		RETURNING id, username, email, password_hash, is_admin, is_active, created_at, updated_at, preferences`,
 		id, isActive, isAdmin)
 	u, err := scanUser(row)
 	return u, mapNoRows(err)
@@ -102,6 +102,17 @@ type scannable interface {
 
 func scanUser(row scannable) (model.User, error) {
 	var u model.User
-	err := row.Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.IsAdmin, &u.IsActive, &u.CreatedAt, &u.UpdatedAt)
+	err := row.Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.IsAdmin, &u.IsActive, &u.CreatedAt, &u.UpdatedAt, &u.Preferences)
 	return u, err
+}
+
+// UpdatePreferences replaces a user's preferences jsonb blob.
+func (q *Queries) UpdatePreferences(ctx context.Context, id uuid.UUID, prefs []byte) (model.User, error) {
+	row := q.db.QueryRow(ctx, `
+		UPDATE users SET preferences = $2::jsonb
+		WHERE id = $1
+		RETURNING id, username, email, password_hash, is_admin, is_active, created_at, updated_at, preferences`,
+		id, string(prefs))
+	u, err := scanUser(row)
+	return u, mapNoRows(err)
 }

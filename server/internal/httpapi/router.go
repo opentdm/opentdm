@@ -107,6 +107,7 @@ func NewRouter(opts Options) http.Handler {
 				m.Use(h.requireUser)
 				m.Use(h.csrf)
 				m.Get("/auth/me", h.handleMe)
+				m.Put("/auth/me/preferences", h.handleUpdatePreferences)
 				m.Get("/projects", h.handleListProjects)
 				m.Post("/projects", h.handleCreateProject)
 				m.Get("/projects/{project}", h.handleGetProject)
