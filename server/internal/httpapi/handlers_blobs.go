@@ -17,6 +17,8 @@ func fileContentType(format string) string {
 		return "text/csv; charset=utf-8"
 	case model.FormatXML:
 		return "application/xml"
+	case model.FormatYAML:
+		return "application/yaml"
 	default:
 		return "application/octet-stream"
 	}

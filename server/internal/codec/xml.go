@@ -58,6 +58,8 @@ func ValidateFile(format string, raw []byte) error {
 		return ValidateCSV(raw)
 	case FormatXML:
 		return ValidateXML(raw)
+	case FormatYAML:
+		return ValidateYAML(raw)
 	default:
 		return &ParseError{Code: "E_UNSUPPORTED", Message: "not a file format: " + format}
 	}

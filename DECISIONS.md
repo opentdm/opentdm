@@ -43,8 +43,12 @@
   (`envOnlyMode` in `app.CreateConfig`) is now **off** to support the web Add-object file-upload flow —
   `.env` uploads create `variable/env` bundles, `json`/`csv`/`xml` uploads create file configs. The
   `variableFormats`/`fileFormats` maps and the DB CHECK constraint remain the real validation guards.
-  `properties`/`secret` stay creatable via the API but are not yet surfaced in the upload UI (their key
-  rules differ from the env `ValidKey` grammar).
+- **Upload formats (2026-06).** The Add-object dropzone accepts `.env`/`.properties` → variable bundles,
+  `json`/`csv`/`xml`/`yaml` → file fixtures, and a "mask all values" toggle → a `secret` bundle. `yaml`
+  was added to the `config_format` enum + the file branch of the CHECK (migrations 000008/000009).
+  **Key safety is unchanged:** `codec.Render` still rejects non-env key names for every output format, so
+  a `.properties` upload with dotted keys (`a.b.c`) is rejected up front in the dialog rather than stored
+  un-renderably — the inject-safe shell/dotenv path keeps its `ValidKey` guard.
 - **Clone removed.** Per-object and bulk environment clone (endpoints, handlers, app methods, audit
   labels, e2e) are deleted; no schema/data impact (clone only ever wrote ordinary `config_items`). The
   inherited-by-default editor (base overlaid into each environment) replaces its use case.

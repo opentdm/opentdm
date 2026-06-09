@@ -1,17 +1,19 @@
 import { FormEvent, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Box, Button, Dialog, Flash, FormControl, IconButton, Text, TextInput } from "../ui/primer";
+import { Box, Button, Checkbox, Dialog, Flash, FormControl, IconButton, Text, TextInput } from "../ui/primer";
 import { FileIcon, KeyIcon, TableIcon, TrashIcon, UploadIcon } from "@primer/octicons-react";
 import { api, Config } from "../api";
 import { parseDotenv } from "../lib/dotenv";
+import { parseProperties } from "../lib/properties";
 import { useToast } from "../lib/toast";
 
-const FILE_FORMATS = ["json", "csv", "xml"];
-const ACCEPT = ".env,.json,.csv,.xml";
+const FILE_FORMATS = ["json", "csv", "xml", "yaml"];
+const ACCEPT = ".env,.properties,.json,.csv,.xml,.yaml,.yml";
 const CONTENT_TYPE: Record<string, string> = {
   json: "application/json",
   csv: "text/csv",
   xml: "application/xml",
+  yaml: "application/yaml",
 };
 
 interface Upload {
@@ -23,9 +25,9 @@ interface Upload {
   lines: number;
 }
 
-// Create-object dialog with an optional file dropzone. A .env upload becomes a
-// base-layer variable bundle; a json/csv/xml upload becomes a file object with
-// its content stored as the base variant; no file creates an empty env bundle.
+// Create-object dialog with an optional file dropzone. .env/.properties become a
+// variable bundle; json/csv/xml/yaml become a file object stored as the base
+// variant; "mask all values" makes a secret bundle; no file → empty env bundle.
 export default function AddObjectDialog({
   slug,
   onClose,
@@ -39,6 +41,7 @@ export default function AddObjectDialog({
   const toast = useToast();
   const [name, setName] = useState("");
   const [upload, setUpload] = useState<Upload | null>(null);
+  const [secret, setSecret] = useState(false);
   const [over, setOver] = useState(false);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -46,7 +49,8 @@ export default function AddObjectDialog({
 
   function readFile(f?: File | null) {
     if (!f) return;
-    const ext = (f.name.split(".").pop() || "").toLowerCase();
+    let ext = (f.name.split(".").pop() || "").toLowerCase();
+    if (ext === "yml") ext = "yaml";
     const reader = new FileReader();
     reader.onload = () => {
       const text = String(reader.result || "");
@@ -75,15 +79,19 @@ export default function AddObjectDialog({
     setBusy(true);
     try {
       let nm = name.trim();
+      const varFormat = secret ? "secret" : "env";
       if (upload) {
         nm = nm || upload.baseName || "config";
-        if (upload.ext === "env") {
-          const { items, invalidKeys } = parseDotenv(upload.text);
-          if (invalidKeys.length) {
-            const shown = invalidKeys.slice(0, 3).join(", ");
-            throw new Error(`Invalid variable name(s): ${shown}${invalidKeys.length > 3 ? "…" : ""}`);
+        if (upload.ext === "env" || upload.ext === "properties") {
+          const parsed = upload.ext === "properties" ? parseProperties(upload.text) : parseDotenv(upload.text);
+          if (parsed.invalidKeys.length) {
+            const shown = parsed.invalidKeys.slice(0, 3).join(", ");
+            const extra = parsed.invalidKeys.length > 3 ? `, +${parsed.invalidKeys.length - 3} more` : "";
+            throw new Error(`Unsupported key name(s) (must be A–Z, 0–9, _; no dots/dashes): ${shown}${extra}`);
           }
-          const created = await api.post<Config>(`/projects/${slug}/configs`, { kind: "variable", format: "env", name: nm });
+          const format = upload.ext === "properties" ? "properties" : varFormat;
+          const items = secret ? parsed.items.map((it) => ({ ...it, is_secret: true })) : parsed.items;
+          const created = await api.post<Config>(`/projects/${slug}/configs`, { kind: "variable", format, name: nm });
           if (items.length) await api.putItems(slug, created.id, "base", items, `Imported ${upload.name}`);
           finish(created.id);
           return;
@@ -101,7 +109,7 @@ export default function AddObjectDialog({
         throw new Error(`Unsupported file type: .${upload.ext}`);
       }
       nm = nm || "new-object";
-      const created = await api.post<Config>(`/projects/${slug}/configs`, { kind: "variable", format: "env", name: nm });
+      const created = await api.post<Config>(`/projects/${slug}/configs`, { kind: "variable", format: varFormat, name: nm });
       finish(created.id);
     } catch (e: any) {
       setErr(e.message);
@@ -109,7 +117,16 @@ export default function AddObjectDialog({
     }
   }
 
-  const chip = upload?.ext === "csv" ? <TableIcon /> : upload?.ext === "env" ? <KeyIcon /> : <FileIcon />;
+  const isVariableUpload = upload?.ext === "env" || upload?.ext === "properties";
+  const showSecretToggle = !upload || upload.ext === "env";
+  const chip = upload?.ext === "csv" ? <TableIcon /> : isVariableUpload ? <KeyIcon /> : <FileIcon />;
+  const uploadType = upload
+    ? upload.ext === "env"
+      ? "env variable bundle"
+      : upload.ext === "properties"
+        ? "properties bundle"
+        : `${upload.ext} fixture`
+    : "";
 
   return (
     <Dialog title="Add object" onClose={onClose}>
@@ -149,8 +166,7 @@ export default function AddObjectDialog({
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Text sx={{ fontWeight: "bold", display: "block" }}>{upload.name}</Text>
                 <Text sx={{ color: "fg.muted", fontSize: 0 }}>
-                  {upload.ext === "env" ? "env variable bundle" : `${upload.ext} fixture`} · {upload.size} bytes ·{" "}
-                  {upload.lines} lines
+                  {uploadType} · {upload.size} bytes · {upload.lines} lines
                 </Text>
               </Box>
               <IconButton icon={TrashIcon} aria-label="Remove file" variant="invisible" onClick={() => setUpload(null)} />
@@ -175,13 +191,21 @@ export default function AddObjectDialog({
                 <UploadIcon size={20} />
               </span>
               <span className="otdm-dz-main">Drag a file here, or click to browse</span>
-              <span className="otdm-dz-sub">.env, .json, .csv, .xml</span>
+              <span className="otdm-dz-sub">.env, .properties, .json, .csv, .xml, .yaml</span>
             </button>
           )}
         </Box>
 
+        {showSecretToggle && (
+          <FormControl>
+            <Checkbox checked={secret} onChange={(e) => setSecret(e.target.checked)} />
+            <FormControl.Label>Mask all values as secrets</FormControl.Label>
+            <FormControl.Caption>Creates a secret bundle — every value is hidden by default.</FormControl.Caption>
+          </FormControl>
+        )}
+
         {!upload && (
-          <Flash>No file? An empty env variable bundle is created — add keys in the editor.</Flash>
+          <Flash>No file? An empty variable bundle is created — add keys in the editor.</Flash>
         )}
 
         <Box sx={{ display: "flex", gap: 2, justifyContent: "flex-end" }}>
