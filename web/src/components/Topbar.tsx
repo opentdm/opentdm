@@ -1,12 +1,18 @@
 import { useEffect, useState } from "react";
 import { Link as RouterLink, useLocation } from "react-router-dom";
-import { Breadcrumbs } from "../ui/primer";
+import { Breadcrumbs, IconButton } from "../ui/primer";
+import { CommandPaletteIcon, MoonIcon, SunIcon } from "@primer/octicons-react";
 import { api } from "../api";
 import { useProjectsCtx } from "../lib/projects";
+import { useColorMode } from "../lib/colorMode";
 
 interface Crumb {
   label: string;
   to?: string;
+}
+
+interface TopbarProps {
+  onOpenPalette: () => void;
 }
 
 const SETTINGS_LABELS: Record<string, string> = {
@@ -20,9 +26,11 @@ const SETTINGS_LABELS: Record<string, string> = {
 // A slim global topbar showing route-derived breadcrumbs. Replaces the
 // per-page Breadcrumbs that each route used to render. The project name comes
 // from the shared projects context; the object name is fetched on object routes.
-export default function Topbar() {
+export default function Topbar({ onOpenPalette }: TopbarProps) {
   const { pathname } = useLocation();
   const { projects } = useProjectsCtx();
+  const { mode, setMode } = useColorMode();
+  const dark = mode === "dark";
   const parts = pathname.split("/").filter(Boolean);
   const slug = parts[0] === "projects" ? parts[1] : "";
   const configId = parts[0] === "projects" && parts[2] === "configs" ? parts[3] : "";
@@ -48,7 +56,10 @@ export default function Topbar() {
   function buildCrumbs(): Crumb[] {
     if (parts.length === 0) return [{ label: "Projects" }];
     if (parts[0] === "settings") {
-      const out: Crumb[] = [{ label: "Settings", to: "/settings" }];
+      const out: Crumb[] = [
+        { label: "Projects", to: "/" },
+        { label: "Settings", to: "/settings" },
+      ];
       const section = parts[1];
       if (section && SETTINGS_LABELS[section]) out.push({ label: SETTINGS_LABELS[section] });
       return out;
@@ -83,6 +94,15 @@ export default function Topbar() {
           );
         })}
       </Breadcrumbs>
+      <div className="otdm-topbar-actions">
+        <IconButton
+          icon={dark ? SunIcon : MoonIcon}
+          aria-label={dark ? "Switch to light theme" : "Switch to dark theme"}
+          size="small"
+          onClick={() => setMode(dark ? "light" : "dark")}
+        />
+        <IconButton icon={CommandPaletteIcon} aria-label="Open command palette" size="small" onClick={onOpenPalette} />
+      </div>
     </div>
   );
 }

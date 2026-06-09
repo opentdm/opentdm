@@ -2,6 +2,7 @@ import { CSSProperties } from "react";
 import { Box, Heading, Text } from "../../ui/primer";
 import { CheckIcon, DeviceDesktopIcon, MoonIcon, SunIcon } from "@primer/octicons-react";
 import { ColorMode, useColorMode } from "../../lib/colorMode";
+import Overline from "../Overline";
 
 // Swatch colors are intentionally literal (not functional vars) so each card
 // previews its own theme regardless of the currently-active mode.
@@ -22,6 +23,7 @@ export default function AppearancePanel() {
   const { mode, setMode } = useColorMode();
   return (
     <Box>
+      <Overline>Preferences</Overline>
       <Heading sx={{ fontSize: 3, mb: 1 }}>Appearance</Heading>
       <Text sx={{ color: "fg.muted", display: "block", mb: 3 }}>
         Choose how opentdm looks. “Auto” follows your system setting.

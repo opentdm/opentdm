@@ -184,6 +184,12 @@ export default function KvEditor({ slug, config, layer, readOnly, onSaved }: KvE
       ) : (
         <Box sx={{ display: "grid", gap: 1 }}>
           {rows.length === 0 && <Text sx={{ color: "fg.muted" }}>No variables{isBase ? "" : " for this environment"}.</Text>}
+          {rows.length > 0 && (
+            <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+              <Text sx={{ width: 240, fontSize: 0, fontWeight: "bold", color: "fg.muted", textTransform: "uppercase" }}>KEY</Text>
+              <Text sx={{ flex: 1, fontSize: 0, fontWeight: "bold", color: "fg.muted", textTransform: "uppercase" }}>VALUE</Text>
+            </Box>
+          )}
           {rows.map((r, i) =>
             r.state === "tombstone" ? (
               <Box key={i} sx={{ display: "flex", gap: 1, alignItems: "center" }}>

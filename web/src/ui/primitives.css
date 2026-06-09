@@ -1,0 +1,55 @@
+/* Small shared UI primitives used across pages: the iris overline eyebrow, the
+   per-name initials avatar, and a solid accent pill. Colors via Primer
+   functional vars + OKLCH (hue from name); dark variants mirror tokens.css's
+   selectors so they track explicit dark AND colorMode="auto" on a dark system. */
+
+/* Overline: small iris uppercase label above a page/section title. */
+.otdm-overline {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--fgColor-accent);
+  margin-bottom: 6px;
+}
+
+/* Avatar: circular initials, tinted per-name via an inline --h (OKLCH hue). */
+.otdm-avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  border-radius: 50%;
+  font-weight: 600;
+  text-transform: uppercase;
+  line-height: 1;
+  color: oklch(0.4 0.09 var(--h));
+  background: oklch(0.92 0.05 var(--h));
+}
+[data-color-mode="dark"][data-dark-theme="dark"] .otdm-avatar,
+[data-color-mode="auto"][data-light-theme="dark"] .otdm-avatar {
+  color: oklch(0.88 0.1 var(--h));
+  background: oklch(0.34 0.06 var(--h));
+}
+@media (prefers-color-scheme: dark) {
+  [data-color-mode="auto"][data-dark-theme="dark"] .otdm-avatar {
+    color: oklch(0.88 0.1 var(--h));
+    background: oklch(0.34 0.06 var(--h));
+  }
+}
+
+/* Solid accent (iris) pill — the active "base" env chip. Mirrors a Primer
+   Label's metrics but forces the accent-emphasis fill. */
+.otdm-pill-accent {
+  background: var(--bgColor-accent-emphasis) !important;
+  border-color: transparent !important;
+  color: var(--fgColor-onEmphasis, #fff) !important;
+}
+
+/* Topbar right-hand action cluster (dark toggle + ⌘ palette). */
+.otdm-topbar-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}

@@ -18,6 +18,9 @@ export interface Project {
   name: string;
   description: string;
   your_role?: string; // viewer | editor | owner (caller's role)
+  object_count?: number; // grid summary counts (present on the list endpoint)
+  env_count?: number;
+  member_count?: number;
   created_at: string;
 }
 export interface Member {
@@ -117,6 +120,7 @@ export interface Config {
   sort_order: number;
   description: string;
   is_secret: boolean;
+  key_count?: number; // base-layer key count (present on the configs list endpoint)
 }
 export interface Item {
   key: string;
@@ -127,6 +131,8 @@ export interface Item {
 export interface SearchHit {
   config_id: string;
   name: string;
+  kind?: string; // variable | file
+  is_secret?: boolean;
   project_slug: string;
   project_name: string;
 }
@@ -204,6 +210,9 @@ export interface VersionMeta {
   kind: string;
   byte_size: number;
   comment?: string;
+  added?: number; // per-version deltas vs the previous version (variable configs)
+  changed?: number;
+  removed?: number;
   created_at: string;
 }
 export interface VarDiffEntry {

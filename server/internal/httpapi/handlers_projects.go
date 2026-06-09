@@ -17,7 +17,7 @@ func (h *Handlers) handleListProjects(w http.ResponseWriter, r *http.Request) {
 	}
 	out := make([]projectDTO, 0, len(projects))
 	for _, p := range projects {
-		out = append(out, toProjectDTOWithRole(p.Project, p.Role))
+		out = append(out, toProjectListDTO(p))
 	}
 	WriteJSON(w, http.StatusOK, out, nil)
 }

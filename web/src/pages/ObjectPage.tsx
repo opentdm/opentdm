@@ -14,7 +14,7 @@ import {
   Text,
   TextInput,
 } from "../ui/primer";
-import { ColumnsIcon, CopyIcon, EyeClosedIcon, EyeIcon, KebabHorizontalIcon, PencilIcon, TrashIcon } from "@primer/octicons-react";
+import { ColumnsIcon, CopyIcon, EyeClosedIcon, EyeIcon, GearIcon, PencilIcon, TrashIcon } from "@primer/octicons-react";
 import { api, canWrite, Config, Environment, Project } from "../api";
 import { useToast } from "../lib/toast";
 import EditorDispatch from "../components/editors/EditorDispatch";
@@ -122,7 +122,10 @@ export default function ObjectPage() {
 
       {/* Object header */}
       <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
-        <Heading sx={{ fontSize: 4 }}>{config.name}</Heading>
+        <Box>
+          <Heading sx={{ fontSize: 4 }}>{config.name}</Heading>
+          {config.description && <Text sx={{ color: "fg.muted", display: "block", mt: 1 }}>{config.description}</Text>}
+        </Box>
         <Label variant="secondary">{config.format}</Label>
         <Label variant={config.kind === "file" ? "accent" : "default"}>{config.kind}</Label>
         {config.format === "secret" && <Label variant="danger">secret</Label>}
@@ -130,7 +133,7 @@ export default function ObjectPage() {
         {!readOnly && (
           <ActionMenu>
             <ActionMenu.Anchor>
-              <Button leadingVisual={KebabHorizontalIcon}>Object</Button>
+              <Button leadingVisual={GearIcon}>Object</Button>
             </ActionMenu.Anchor>
             <ActionMenu.Overlay width="small">
               <ActionList>

@@ -30,6 +30,16 @@ body {
   --borderColor-accent-muted: oklch(0.86 0.07 278);
   --underlineNav-borderColor-active: oklch(0.55 0.17 278);
 
+  /* Filled "primary" buttons → iris. Primer's default primary is green
+     (--button-primary-bgColor-rest → --bgColor-success-emphasis); the mock uses
+     the accent for every primary action (New project, Add object, Save, …). */
+  --button-primary-bgColor-rest: var(--bgColor-accent-emphasis);
+  --button-primary-bgColor-hover: oklch(0.5 0.17 278);
+  --button-primary-bgColor-active: oklch(0.46 0.16 278);
+  --button-primary-borderColor-rest: var(--borderColor-accent-emphasis);
+  --button-primary-borderColor-hover: var(--borderColor-accent-emphasis);
+  --button-primary-borderColor-active: var(--borderColor-accent-emphasis);
+
   /* Neutral palette → prototype OKLCH (warm hue 278). Surface = white; muted/
      inset carry the tint; borders + text get a faint warmth. */
   --fgColor-default: oklch(0.24 0.012 278);
@@ -51,6 +61,14 @@ body {
   --borderColor-accent-emphasis: oklch(0.62 0.13 278);
   --borderColor-accent-muted: oklch(0.4 0.09 278);
   --underlineNav-borderColor-active: oklch(0.68 0.15 278);
+
+  /* Filled "primary" buttons → iris (see light block). */
+  --button-primary-bgColor-rest: var(--bgColor-accent-emphasis);
+  --button-primary-bgColor-hover: oklch(0.62 0.15 278);
+  --button-primary-bgColor-active: oklch(0.58 0.14 278);
+  --button-primary-borderColor-rest: var(--borderColor-accent-emphasis);
+  --button-primary-borderColor-hover: var(--borderColor-accent-emphasis);
+  --button-primary-borderColor-active: var(--borderColor-accent-emphasis);
 
   /* Neutral palette → prototype OKLCH (warm hue 278). Cards slightly lighter
      than the sidebar/page so depth reads in dark mode. */
@@ -78,6 +96,13 @@ body {
     --borderColor-accent-emphasis: oklch(0.62 0.13 278);
     --borderColor-accent-muted: oklch(0.4 0.09 278);
     --underlineNav-borderColor-active: oklch(0.68 0.15 278);
+
+    --button-primary-bgColor-rest: var(--bgColor-accent-emphasis);
+    --button-primary-bgColor-hover: oklch(0.62 0.15 278);
+    --button-primary-bgColor-active: oklch(0.58 0.14 278);
+    --button-primary-borderColor-rest: var(--borderColor-accent-emphasis);
+    --button-primary-borderColor-hover: var(--borderColor-accent-emphasis);
+    --button-primary-borderColor-active: var(--borderColor-accent-emphasis);
 
     --fgColor-default: oklch(0.935 0.006 278);
     --fgColor-muted: oklch(0.68 0.012 278);

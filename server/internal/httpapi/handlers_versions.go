@@ -20,14 +20,14 @@ func (h *Handlers) handleListVersions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	env := r.URL.Query().Get("env")
-	versions, err := h.svc.ListVersions(r.Context(), p, c, env)
+	versions, deltas, err := h.svc.ListVersionsWithDeltas(r.Context(), p, c, env)
 	if err != nil {
 		h.writeErr(w, r, err)
 		return
 	}
 	out := make([]versionMetaDTO, 0, len(versions))
 	for _, v := range versions {
-		out = append(out, toVersionMetaDTO(v))
+		out = append(out, toVersionMetaDTOWithDelta(v, deltas[v.Version]))
 	}
 	WriteJSON(w, http.StatusOK, out, map[string]string{"env": env})
 }

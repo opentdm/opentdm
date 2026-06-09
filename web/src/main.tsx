@@ -18,6 +18,7 @@ import "@primer/primitives/dist/css/functional/themes/dark.css";
 import "./ui/tokens.css";
 import "./ui/compat.css";
 import "./ui/anim.css";
+import "./ui/primitives.css";
 import "./ui/topbar.css";
 import "./ui/shell.css";
 import "./ui/settings.css";

@@ -65,7 +65,7 @@ func (q *Queries) ArchiveConfig(ctx context.Context, projectID, configID uuid.UU
 // member of). The query is expected pre-escaped for ILIKE (see app layer).
 func (q *Queries) SearchConfigs(ctx context.Context, userID uuid.UUID, isAdmin bool, query string, limit int) ([]model.ConfigSearchHit, error) {
 	rows, err := q.db.Query(ctx, `
-		SELECT c.id, c.name, p.slug, p.name
+		SELECT c.id, c.name, c.kind::text, c.is_secret, p.slug, p.name
 		FROM configs c JOIN projects p ON p.id = c.project_id
 		WHERE c.archived_at IS NULL AND p.archived_at IS NULL
 		  AND c.name ILIKE '%' || $2 || '%' ESCAPE '\'
@@ -79,10 +79,35 @@ func (q *Queries) SearchConfigs(ctx context.Context, userID uuid.UUID, isAdmin b
 	var out []model.ConfigSearchHit
 	for rows.Next() {
 		var h model.ConfigSearchHit
-		if err := rows.Scan(&h.ConfigID, &h.ConfigName, &h.ProjectSlug, &h.ProjectName); err != nil {
+		if err := rows.Scan(&h.ConfigID, &h.ConfigName, &h.Kind, &h.IsSecret, &h.ProjectSlug, &h.ProjectName); err != nil {
 			return nil, err
 		}
 		out = append(out, h)
+	}
+	return out, rows.Err()
+}
+
+// BaseKeyCounts returns the number of non-deleted base-layer (env_id IS NULL)
+// keys per variable config in a project, keyed by config id. File configs have
+// no items and are simply absent from the map (zero on lookup).
+func (q *Queries) BaseKeyCounts(ctx context.Context, projectID uuid.UUID) (map[uuid.UUID]int, error) {
+	rows, err := q.db.Query(ctx, `
+		SELECT ci.config_id, COUNT(*)
+		FROM config_items ci JOIN configs c ON c.id = ci.config_id
+		WHERE c.project_id = $1 AND ci.env_id IS NULL AND NOT ci.deleted
+		GROUP BY ci.config_id`, projectID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[uuid.UUID]int{}
+	for rows.Next() {
+		var id uuid.UUID
+		var n int
+		if err := rows.Scan(&id, &n); err != nil {
+			return nil, err
+		}
+		out[id] = n
 	}
 	return out, rows.Err()
 }

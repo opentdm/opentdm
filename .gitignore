@@ -45,3 +45,4 @@ docs/.vitepress/cache/
 
 # Local design reference bundle (prototype + handoff) — implemented into web/, not shipped
 design_handoff_opentdm_redesign/
+compare-shots/

@@ -66,10 +66,21 @@ type UserPreferences struct {
 	Favourites []string `json:"favourites,omitempty"`
 }
 
+// ProjectCounts holds the per-project summary counts shown on the projects grid
+// (objects, environments, members).
+type ProjectCounts struct {
+	Objects int
+	Envs    int
+	Members int
+}
+
 // ConfigSearchHit is one result of a cross-project object search (⌘K palette).
+// Kind/IsSecret let the palette pick a key vs lock icon.
 type ConfigSearchHit struct {
 	ConfigID    uuid.UUID
 	ConfigName  string
+	Kind        string
+	IsSecret    bool
 	ProjectSlug string
 	ProjectName string
 }

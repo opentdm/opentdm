@@ -84,6 +84,12 @@ func (s *Service) ListConfigs(ctx context.Context, projectID uuid.UUID) ([]model
 	return s.store.Q().ListConfigs(ctx, projectID)
 }
 
+// BaseKeyCounts returns base-layer key counts per variable config in a project,
+// for the objects list ("N keys").
+func (s *Service) BaseKeyCounts(ctx context.Context, projectID uuid.UUID) (map[uuid.UUID]int, error) {
+	return s.store.Q().BaseKeyCounts(ctx, projectID)
+}
+
 // UpdateConfig renames a config and sets its sort_order/description.
 func (s *Service) UpdateConfig(ctx context.Context, projectID, configID uuid.UUID, name string, sortOrder int, description string) (model.Config, error) {
 	if name == "" {

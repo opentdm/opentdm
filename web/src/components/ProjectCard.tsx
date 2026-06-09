@@ -1,7 +1,7 @@
 import { CSSProperties } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import { Label } from "../ui/primer";
-import { RepoIcon, StarIcon, StarFillIcon, CalendarIcon } from "@primer/octicons-react";
+import { RepoIcon, StarIcon, StarFillIcon, FileDirectoryIcon, ServerIcon, PeopleIcon } from "@primer/octicons-react";
 import { Project } from "../api";
 import { hueFromString } from "../lib/color";
 
@@ -11,11 +11,6 @@ const ROLE_VARIANT: Record<string, "done" | "accent" | "secondary"> = {
   viewer: "secondary",
 };
 
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-}
-
 interface ProjectCardProps {
   project: Project;
   isFav: boolean;
@@ -24,7 +19,6 @@ interface ProjectCardProps {
 
 export default function ProjectCard({ project, isFav, onToggleFav }: ProjectCardProps) {
   const role = project.your_role ?? "viewer";
-  const created = formatDate(project.created_at);
 
   return (
     <div className="otdm-pcard-wrap">
@@ -43,14 +37,13 @@ export default function ProjectCard({ project, isFav, onToggleFav }: ProjectCard
           <Label variant={ROLE_VARIANT[role] ?? "secondary"}>{role}</Label>
         </div>
         <div className="otdm-pcard-desc">{project.description || "No description."}</div>
-        {created && (
-          <div className="otdm-pcard-foot">
-            <span className="cell">
-              <CalendarIcon size={14} />
-              Created {created}
-            </span>
-          </div>
-        )}
+        <div className="otdm-pcard-foot">
+          <span className="cell"><FileDirectoryIcon size={14} />{project.object_count ?? 0} objects</span>
+          <span>·</span>
+          <span className="cell"><ServerIcon size={14} />{project.env_count ?? 0} envs</span>
+          <span>·</span>
+          <span className="cell"><PeopleIcon size={14} />{project.member_count ?? 0} members</span>
+        </div>
       </RouterLink>
       <button
         type="button"

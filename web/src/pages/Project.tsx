@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link as RouterLink, useParams } from "react-router-dom";
 import {
-  ActionList,
-  ActionMenu,
   Box,
   Button,
   Dialog,
@@ -13,10 +11,11 @@ import {
   Spinner,
   Text,
 } from "../ui/primer";
-import { EyeIcon, FileIcon, GearIcon, KebabHorizontalIcon, KeyIcon, PlusIcon, PulseIcon } from "@primer/octicons-react";
+import { ChevronRightIcon, EyeIcon, FileIcon, GearIcon, KeyIcon, PlusIcon, PulseIcon, StackIcon } from "@primer/octicons-react";
 import { api, canWrite, Config, Environment, Project } from "../api";
 import ResolvedView from "../components/ResolvedView";
 import AddObjectDialog from "../components/AddObjectDialog";
+import Overline from "../components/Overline";
 
 export default function ProjectPage() {
   const { slug = "" } = useParams();
@@ -54,24 +53,17 @@ export default function ProjectPage() {
     <Box sx={{ display: "grid", gap: 4 }}>
       <Box sx={{ display: "flex", alignItems: "flex-start", flexWrap: "wrap", gap: 2 }}>
         <Box>
+          <Overline>Project</Overline>
           <Heading sx={{ fontSize: 4 }}>{project.name}</Heading>
           {project.description && <Text sx={{ color: "fg.muted", display: "block", mt: 1 }}>{project.description}</Text>}
           <Box sx={{ mt: 2, display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
-            <Label variant="primary">base</Label>
+            <Label variant="accent" className="otdm-pill-accent">base</Label>
             {envs.map((e) => (
-              <Label key={e.id} variant={e.is_default ? "accent" : "secondary"}>
-                {e.slug}
+              <Label key={e.id} variant="secondary">
+                {e.slug}{e.is_default ? " · default" : ""}
               </Label>
             ))}
-            {project.your_role && (
-              <Label variant="secondary" sx={{ ml: 1 }}>
-                you: {project.your_role}
-              </Label>
-            )}
           </Box>
-          <Text sx={{ color: "fg.muted", fontSize: 0, display: "block", mt: 1 }}>
-            Shared defaults (<b>base</b>) + {envs.length} environment{envs.length === 1 ? "" : "s"} that override it.
-          </Text>
         </Box>
         <Box sx={{ flex: 1 }} />
         <Button as={RouterLink} to={`/projects/${slug}/activity`} leadingVisual={PulseIcon}>
@@ -98,7 +90,7 @@ export default function ProjectPage() {
         </div>
         <div className="otdm-meta-cell">
           <div className="k">Your role</div>
-          <div className="v" style={{ textTransform: "capitalize" }}>
+          <div className="v" style={{ textTransform: "capitalize", fontSize: 15, fontWeight: 600 }}>
             {project.your_role ?? "—"}
           </div>
         </div>
@@ -127,7 +119,10 @@ function ObjectsSection({
 
   return (
     <Box>
-      <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
+        <Box sx={{ color: "fg.muted", display: "flex" }}>
+          <StackIcon />
+        </Box>
         <Heading sx={{ fontSize: 3 }}>Objects</Heading>
         <Box sx={{ flex: 1 }} />
         {canWrite && (
@@ -169,28 +164,26 @@ function ObjectsSection({
               }}
             >
               <Box sx={{ color: "fg.muted", display: "flex" }}>{c.kind === "file" ? <FileIcon /> : <KeyIcon />}</Box>
-              <Text sx={{ fontWeight: "bold" }}>{c.name}</Text>
+              <Box sx={{ display: "flex", flexDirection: "column" }}>
+                <Text sx={{ fontWeight: "bold" }}>{c.name}</Text>
+                {c.description && <Text sx={{ color: "fg.muted", fontSize: 0 }}>{c.description}</Text>}
+              </Box>
               <Label variant="secondary">{c.format}</Label>
             </Box>
             {c.kind === "variable" && (
-              <Box sx={{ pr: 2 }}>
-                <ActionMenu>
-                  <ActionMenu.Anchor>
-                    <IconButton icon={KebabHorizontalIcon} aria-label={`Actions for ${c.name}`} variant="invisible" />
-                  </ActionMenu.Anchor>
-                  <ActionMenu.Overlay width="small">
-                    <ActionList>
-                      <ActionList.Item onSelect={() => setResolveTarget(c)}>
-                        <ActionList.LeadingVisual>
-                          <EyeIcon />
-                        </ActionList.LeadingVisual>
-                        View resolved
-                      </ActionList.Item>
-                    </ActionList>
-                  </ActionMenu.Overlay>
-                </ActionMenu>
-              </Box>
+              <Text sx={{ color: "fg.muted", fontSize: 0 }}>{c.key_count ?? 0} keys</Text>
             )}
+            {c.kind === "variable" && (
+              <IconButton
+                icon={EyeIcon}
+                aria-label={`View resolved ${c.name}`}
+                variant="invisible"
+                onClick={() => setResolveTarget(c)}
+              />
+            )}
+            <Box sx={{ pr: 3, color: "fg.muted", display: "flex" }}>
+              <ChevronRightIcon />
+            </Box>
           </Box>
         ))}
       </Box>

@@ -7,6 +7,7 @@ import AccessTokensPanel from "../components/settings/AccessTokensPanel";
 import AppearancePanel from "../components/settings/AppearancePanel";
 import ActivityPanel from "../components/settings/ActivityPanel";
 import UsersPanel from "../components/settings/UsersPanel";
+import Overline from "../components/Overline";
 
 const SECTIONS = ["account", "tokens", "appearance", "activity", "users"] as const;
 type Section = (typeof SECTIONS)[number];
@@ -36,7 +37,8 @@ export default function Settings({ me }: { me: User }) {
 
   return (
     <Box>
-      <Heading sx={{ fontSize: 5 }}>Settings</Heading>
+      <Overline>Settings</Overline>
+      <Heading sx={{ fontSize: 5 }}>Your account</Heading>
       <Box className="otdm-settings">
         <Box className="otdm-settings-nav">
           <NavList>
@@ -58,7 +60,7 @@ export default function Settings({ me }: { me: User }) {
           {current === "tokens" && <AccessTokensPanel />}
           {current === "appearance" && <AppearancePanel />}
           {current === "activity" && <ActivityPanel />}
-          {current === "users" && <UsersPanel />}
+          {current === "users" && <UsersPanel meId={me.id} />}
         </Box>
       </Box>
     </Box>
