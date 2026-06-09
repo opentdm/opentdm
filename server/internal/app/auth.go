@@ -5,6 +5,8 @@ import (
 	"encoding/base64"
 	"strings"
 
+	"github.com/google/uuid"
+
 	"github.com/opentdm/opentdm/server/internal/crypto"
 	"github.com/opentdm/opentdm/server/internal/model"
 	"github.com/opentdm/opentdm/server/internal/store"
@@ -130,6 +132,44 @@ func newOpaqueToken() (string, error) {
 		return "", err
 	}
 	return base64.RawURLEncoding.EncodeToString(b), nil
+}
+
+// UpdateProfile changes the signed-in user's email (the only editable profile
+// field; username is the stable audit/login identity). Duplicate email → 409.
+func (s *Service) UpdateProfile(ctx context.Context, userID uuid.UUID, email string) (model.User, error) {
+	email = strings.TrimSpace(email)
+	if !strings.Contains(email, "@") {
+		return model.User{}, invalid("email", "must be a valid email")
+	}
+	u, err := s.store.Q().UpdateUserEmail(ctx, userID, email)
+	if err != nil {
+		if isUniqueViolation(err) {
+			return model.User{}, ErrConflict
+		}
+		return model.User{}, err
+	}
+	return u, nil
+}
+
+// ChangePassword verifies the current password (constant-time) and sets a new
+// one. A wrong current password is ErrUnauthorized.
+func (s *Service) ChangePassword(ctx context.Context, userID uuid.UUID, current, next string) error {
+	u, err := s.store.Q().GetUserByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	ok, err := crypto.VerifyPassword(u.PasswordHash, current)
+	if err != nil || !ok {
+		return ErrUnauthorized
+	}
+	if len(next) < 8 {
+		return invalid("new_password", "must be at least 8 characters")
+	}
+	hash, err := crypto.HashPassword(next)
+	if err != nil {
+		return err
+	}
+	return s.store.Q().UpdateUserPassword(ctx, userID, hash)
 }
 
 func validateCredentials(username, email, password string) error {
