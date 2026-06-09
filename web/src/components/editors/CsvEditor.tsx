@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { Box, Button, Flash, Spinner, Text } from "../../ui/primer";
 import { api, Config } from "../../api";
+import { useToast } from "../../lib/toast";
 
 const CodeMirrorLazy = lazy(() => import("./CodeMirrorLazy"));
 
@@ -14,13 +15,12 @@ interface CsvEditorProps {
 // CSV object editor: an editable code view (source of truth) plus a read-only
 // parsed table preview so the shape is obvious at a glance.
 export default function CsvEditor({ slug, config, layer, readOnly }: CsvEditorProps) {
+  const toast = useToast();
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
-  const [msg, setMsg] = useState("");
 
   useEffect(() => {
-    setMsg("");
     setErr("");
     setLoading(true);
     api
@@ -34,10 +34,9 @@ export default function CsvEditor({ slug, config, layer, readOnly }: CsvEditorPr
 
   async function save() {
     setErr("");
-    setMsg("");
     try {
       await api.putRaw(`/projects/${slug}/configs/${config.id}/blob?env=${encodeURIComponent(layer)}`, text, "text/csv");
-      setMsg(`Saved ${layer}.`);
+      toast(`Saved ${layer}.`);
     } catch (e: any) {
       setErr(e.message);
     }
@@ -61,7 +60,6 @@ export default function CsvEditor({ slug, config, layer, readOnly }: CsvEditorPr
           <Button variant="primary" onClick={save}>
             Save {layer}
           </Button>
-          {msg && <Text sx={{ color: "success.fg" }}>{msg}</Text>}
         </Box>
       )}
       {rows.length > 0 && (

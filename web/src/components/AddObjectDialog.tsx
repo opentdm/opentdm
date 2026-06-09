@@ -4,6 +4,7 @@ import { Box, Button, Dialog, Flash, FormControl, IconButton, Text, TextInput } 
 import { FileIcon, KeyIcon, TableIcon, TrashIcon, UploadIcon } from "@primer/octicons-react";
 import { api, Config } from "../api";
 import { parseDotenv } from "../lib/dotenv";
+import { useToast } from "../lib/toast";
 
 const FILE_FORMATS = ["json", "csv", "xml"];
 const ACCEPT = ".env,.json,.csv,.xml";
@@ -35,6 +36,7 @@ export default function AddObjectDialog({
   onChange: () => void;
 }) {
   const nav = useNavigate();
+  const toast = useToast();
   const [name, setName] = useState("");
   const [upload, setUpload] = useState<Upload | null>(null);
   const [over, setOver] = useState(false);
@@ -63,6 +65,7 @@ export default function AddObjectDialog({
   function finish(id: string) {
     onChange();
     onClose();
+    toast("Object created.");
     nav(`/projects/${slug}/configs/${id}`);
   }
 

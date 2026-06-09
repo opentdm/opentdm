@@ -17,6 +17,7 @@ import {
 } from "../ui/primer";
 import { ColumnsIcon, CopyIcon, EyeClosedIcon, EyeIcon, KebabHorizontalIcon, PencilIcon, TrashIcon } from "@primer/octicons-react";
 import { api, canWrite, Config, Environment, Project } from "../api";
+import { useToast } from "../lib/toast";
 import EditorDispatch from "../components/editors/EditorDispatch";
 import VersionHistory from "../components/VersionHistory";
 import FileTree from "../components/filebrowser/FileTree";
@@ -32,6 +33,7 @@ import SplitCompare, { Pane } from "../components/filebrowser/SplitCompare";
 export default function ObjectPage() {
   const { slug = "", configId = "" } = useParams();
   const nav = useNavigate();
+  const toast = useToast();
   const [project, setProject] = useState<Project | null>(null);
   const [configs, setConfigs] = useState<Config[]>([]);
   const [envs, setEnvs] = useState<Environment[]>([]);
@@ -74,6 +76,7 @@ export default function ObjectPage() {
     setConfirmDelete(false);
     try {
       await api.archiveConfig(slug, configId);
+      toast("Object deleted.");
       nav(`/projects/${slug}`);
     } catch (e: any) {
       setErr(e.message);
@@ -85,6 +88,7 @@ export default function ObjectPage() {
       await navigator.clipboard.writeText(copyText);
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
+      toast("Copied to clipboard.");
     } catch {
       /* clipboard unavailable */
     }
@@ -165,6 +169,7 @@ export default function ObjectPage() {
             setConfig(c);
             setConfigs((cs) => cs.map((x) => (x.id === c.id ? c : x)));
             setEditingName(false);
+            toast("Object updated.");
           }}
         />
       )}

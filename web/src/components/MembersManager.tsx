@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { Box, Button, Flash, FormControl, Heading, IconButton, Label, Select, Text, TextInput } from "../ui/primer";
 import { TrashIcon } from "@primer/octicons-react";
 import { api, canManage, Invitation, Member } from "../api";
+import { useToast } from "../lib/toast";
 
 const ROLES = ["viewer", "editor", "owner"];
 
@@ -15,6 +16,7 @@ interface MembersManagerProps {
 // read-only list. The server enforces the keep-≥1-owner guard (surfaced here).
 export default function MembersManager({ slug, role }: MembersManagerProps) {
   const manage = canManage(role);
+  const toast = useToast();
   const [members, setMembers] = useState<Member[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [user, setUser] = useState("");
@@ -44,6 +46,7 @@ export default function MembersManager({ slug, role }: MembersManagerProps) {
       setInviteEmail("");
       if (!res.email_sent && res.accept_url) setInviteLink(res.accept_url);
       await load();
+      toast(res.email_sent ? "Invitation sent." : "Invitation created.");
     } catch (e: any) {
       setErr(e.message);
     }
@@ -52,11 +55,12 @@ export default function MembersManager({ slug, role }: MembersManagerProps) {
     void load();
   }, [slug]);
 
-  async function run(fn: () => Promise<unknown>) {
+  async function run(fn: () => Promise<unknown>, successMsg = "Saved.") {
     setErr("");
     try {
       await fn();
       await load();
+      toast(successMsg);
     } catch (e: any) {
       setErr(e.message);
     }
@@ -68,7 +72,7 @@ export default function MembersManager({ slug, role }: MembersManagerProps) {
     await run(async () => {
       await api.addMember(slug, { user: user.trim(), role: addRole });
       setUser("");
-    });
+    }, "Member added.");
   }
 
   return (

@@ -1,10 +1,12 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Box, Button, Flash, FormControl, Heading, Label, Text, TextInput } from "../../ui/primer";
 import { api, PAT } from "../../api";
+import { useToast } from "../../lib/toast";
 
 // Personal access tokens (otdmu_…). Moved verbatim from the old standalone
 // Settings page into the consolidated Settings → Account → Access tokens panel.
 export default function AccessTokensPanel() {
+  const toast = useToast();
   const [pats, setPats] = useState<PAT[]>([]);
   const [name, setName] = useState("");
   const [days, setDays] = useState("90");
@@ -31,6 +33,7 @@ export default function AccessTokensPanel() {
       setMinted(res.token);
       setName("");
       await load();
+      toast("Token created.");
     } catch (e: any) {
       setErr(e.message);
     }
@@ -39,6 +42,7 @@ export default function AccessTokensPanel() {
     try {
       await api.del(`/pats/${id}`);
       await load();
+      toast("Token revoked.");
     } catch (e: any) {
       setErr(e.message);
     }

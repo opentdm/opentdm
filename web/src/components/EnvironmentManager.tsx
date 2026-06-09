@@ -13,6 +13,7 @@ import {
 } from "../ui/primer";
 import { ChevronDownIcon, ChevronUpIcon, PencilIcon, TrashIcon } from "@primer/octicons-react";
 import { api, Environment } from "../api";
+import { useToast } from "../lib/toast";
 
 interface EnvironmentManagerProps {
   slug: string;
@@ -22,6 +23,7 @@ interface EnvironmentManagerProps {
 // / set-default / delete. IDs and slugs are stable (consumers reference the slug);
 // renaming changes only the display name.
 export default function EnvironmentManager({ slug }: EnvironmentManagerProps) {
+  const toast = useToast();
   const [envs, setEnvs] = useState<Environment[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
@@ -43,11 +45,12 @@ export default function EnvironmentManager({ slug }: EnvironmentManagerProps) {
     void load();
   }, [slug]);
 
-  async function run(fn: () => Promise<unknown>) {
+  async function run(fn: () => Promise<unknown>, successMsg = "Saved.") {
     setErr("");
     try {
       await fn();
       await load();
+      toast(successMsg);
     } catch (e: any) {
       setErr(e.message);
     }
@@ -60,7 +63,7 @@ export default function EnvironmentManager({ slug }: EnvironmentManagerProps) {
     await run(async () => {
       await api.createEnv(slug, name);
       setNewName("");
-    });
+    }, "Environment added.");
   }
 
   function move(index: number, dir: -1 | 1) {
