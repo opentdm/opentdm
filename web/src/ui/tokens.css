@@ -29,6 +29,18 @@ body {
   --borderColor-accent-emphasis: oklch(0.55 0.17 278);
   --borderColor-accent-muted: oklch(0.86 0.07 278);
   --underlineNav-borderColor-active: oklch(0.55 0.17 278);
+
+  /* Neutral palette → prototype OKLCH (warm hue 278). Surface = white; muted/
+     inset carry the tint; borders + text get a faint warmth. */
+  --fgColor-default: oklch(0.24 0.012 278);
+  --fgColor-muted: oklch(0.505 0.012 278);
+  --bgColor-default: #ffffff;
+  --bgColor-muted: oklch(0.975 0.004 278);
+  --bgColor-inset: oklch(0.984 0.003 278);
+  --bgColor-neutral-muted: oklch(0.95 0.005 278 / 0.55);
+  --borderColor-default: oklch(0.912 0.005 278);
+  --borderColor-muted: oklch(0.94 0.004 278);
+  --borderColor-emphasis: oklch(0.85 0.007 278);
 }
 [data-color-mode="dark"][data-dark-theme="dark"],
 [data-color-mode="auto"][data-light-theme="dark"] {
@@ -39,4 +51,16 @@ body {
   --borderColor-accent-emphasis: oklch(0.62 0.13 278);
   --borderColor-accent-muted: oklch(0.4 0.09 278);
   --underlineNav-borderColor-active: oklch(0.68 0.15 278);
+
+  /* Neutral palette → prototype OKLCH (warm hue 278). Cards slightly lighter
+     than the sidebar/page so depth reads in dark mode. */
+  --fgColor-default: oklch(0.935 0.006 278);
+  --fgColor-muted: oklch(0.68 0.012 278);
+  --bgColor-default: oklch(0.207 0.014 278);
+  --bgColor-muted: oklch(0.17 0.013 278);
+  --bgColor-inset: oklch(0.17 0.013 278);
+  --bgColor-neutral-muted: oklch(0.3 0.016 278 / 0.5);
+  --borderColor-default: oklch(0.29 0.016 278);
+  --borderColor-muted: oklch(0.25 0.015 278);
+  --borderColor-emphasis: oklch(0.37 0.018 278);
 }
