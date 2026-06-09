@@ -1,0 +1,42 @@
+/* Visual identity: Hanken Grotesk (UI) + JetBrains Mono (code), and an iris
+   accent (oklch hue 278).
+
+   Two scopes:
+   - Fonts: override the Primer font-stack vars on :root and set body, so all UI
+     text + every monospace surface picks up the bundled fonts.
+   - Accent: ONLY the accent var family is recoloured. The selectors deliberately
+     mirror @primer/primitives' compound theme selectors, and this file is
+     imported AFTER the Primer theme CSS, so equal-specificity rules win on
+     cascade order. bg/surface/fg/border stay on Primer's defaults; primary
+     (green) buttons are unchanged — the iris accent drives links, selected/
+     active nav, accent labels, and our own .active states. */
+
+:root {
+  --fontStack-sansSerif: "Hanken Grotesk", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --fontStack-system: "Hanken Grotesk", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --fontStack-monospace: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+body {
+  font-family: var(--fontStack-sansSerif);
+}
+
+[data-color-mode="light"][data-light-theme="light"],
+[data-color-mode="auto"][data-light-theme="light"] {
+  --fgColor-accent: oklch(0.5 0.18 278);
+  --fgColor-accent-emphasis: oklch(0.5 0.18 278);
+  --bgColor-accent-emphasis: oklch(0.55 0.17 278);
+  --bgColor-accent-muted: oklch(0.95 0.04 278);
+  --borderColor-accent-emphasis: oklch(0.55 0.17 278);
+  --borderColor-accent-muted: oklch(0.86 0.07 278);
+  --underlineNav-borderColor-active: oklch(0.55 0.17 278);
+}
+[data-color-mode="dark"][data-dark-theme="dark"],
+[data-color-mode="auto"][data-light-theme="dark"] {
+  --fgColor-accent: oklch(0.78 0.13 278);
+  --fgColor-accent-emphasis: oklch(0.78 0.13 278);
+  --bgColor-accent-emphasis: oklch(0.68 0.15 278);
+  --bgColor-accent-muted: oklch(0.3 0.06 278);
+  --borderColor-accent-emphasis: oklch(0.62 0.13 278);
+  --borderColor-accent-muted: oklch(0.4 0.09 278);
+  --underlineNav-borderColor-active: oklch(0.68 0.15 278);
+}
