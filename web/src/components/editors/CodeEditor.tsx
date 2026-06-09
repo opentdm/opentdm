@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect, useState } from "react";
 import { Box, Button, Flash, Spinner, Text } from "../../ui/primer";
 import { api, Config } from "../../api";
+import { useToast } from "../../lib/toast";
 import type { EditorLanguage } from "./CodeMirrorLazy";
 
 const CodeMirrorLazy = lazy(() => import("./CodeMirrorLazy"));
@@ -24,13 +25,12 @@ interface CodeEditorProps {
 // round-trip and gives instant feedback.
 export default function CodeEditor({ slug, config, layer, readOnly }: CodeEditorProps) {
   const language: EditorLanguage = config.format === "json" ? "json" : "xml";
+  const toast = useToast();
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
-  const [msg, setMsg] = useState("");
 
   useEffect(() => {
-    setMsg("");
     setErr("");
     setLoading(true);
     api
@@ -44,7 +44,7 @@ export default function CodeEditor({ slug, config, layer, readOnly }: CodeEditor
     setErr("");
     try {
       setText(config.format === "json" ? formatJson(text) : formatXml(text));
-      setMsg("Formatted.");
+      toast("Formatted.", "default");
     } catch (e: any) {
       setErr(`Cannot format: ${e.message}`);
     }
@@ -52,7 +52,6 @@ export default function CodeEditor({ slug, config, layer, readOnly }: CodeEditor
 
   async function save() {
     setErr("");
-    setMsg("");
     const problem = validate(config.format, text);
     if (problem) {
       setErr(problem);
@@ -64,7 +63,7 @@ export default function CodeEditor({ slug, config, layer, readOnly }: CodeEditor
         text,
         contentType[config.format] || "application/octet-stream",
       );
-      setMsg(`Saved ${layer}.`);
+      toast(`Saved ${layer}.`);
     } catch (e: any) {
       setErr(e.message);
     }
@@ -90,7 +89,6 @@ export default function CodeEditor({ slug, config, layer, readOnly }: CodeEditor
               Save {layer}
             </Button>
             <Button onClick={format}>Format</Button>
-            {msg && <Text sx={{ color: "success.fg" }}>{msg}</Text>}
           </Box>
           <Text sx={{ color: "fg.muted", fontSize: 0, display: "block", mt: 2 }}>
             Editing the <b>{layer}</b> layer. File content fully replaces the layer on save.

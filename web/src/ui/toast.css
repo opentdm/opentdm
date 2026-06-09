@@ -1,0 +1,76 @@
+/* Toast notifications: a fixed bottom-right stack. className CSS (Primer
+   functional vars) for positioning, variant tints, and the entrance animation
+   the sx-compat shim can't express. */
+
+.otdm-toast-host {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+.otdm-toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 240px;
+  max-width: 380px;
+  padding: 10px 12px;
+  border: 1px solid var(--borderColor-default);
+  border-radius: 8px;
+  background: var(--overlay-bgColor, var(--bgColor-default));
+  box-shadow: var(--shadow-floating-small, 0 4px 12px rgba(0, 0, 0, 0.15));
+  font-size: 13.5px;
+  color: var(--fgColor-default);
+}
+.otdm-toast-ico {
+  display: flex;
+  flex: none;
+}
+.otdm-toast-success .otdm-toast-ico {
+  color: var(--fgColor-success);
+}
+.otdm-toast-danger .otdm-toast-ico {
+  color: var(--fgColor-danger);
+}
+.otdm-toast-default .otdm-toast-ico {
+  color: var(--fgColor-accent);
+}
+.otdm-toast-msg {
+  flex: 1;
+  min-width: 0;
+}
+.otdm-toast-x {
+  flex: none;
+  display: flex;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--fgColor-muted);
+  padding: 2px;
+  border-radius: 4px;
+}
+.otdm-toast-x:hover {
+  background: var(--bgColor-neutral-muted);
+  color: var(--fgColor-default);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .otdm-toast {
+    animation: otdm-toast-in 0.16s ease-out;
+  }
+  @keyframes otdm-toast-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}

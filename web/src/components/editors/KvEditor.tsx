@@ -3,6 +3,7 @@ import { Box, Button, Flash, IconButton, Label, Spinner, Text, TextInput, Textar
 import { EyeClosedIcon, EyeIcon, LockIcon, TrashIcon } from "@primer/octicons-react";
 import { api, Config, Item } from "../../api";
 import { buildRows, MergedRow, RowState } from "../../lib/resolve";
+import { useToast } from "../../lib/toast";
 
 const keyRe = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
@@ -27,6 +28,7 @@ interface KvEditorProps {
 
 export default function KvEditor({ slug, config, layer, readOnly, onSaved }: KvEditorProps) {
   const isBase = layer === "base";
+  const toast = useToast();
   const [rows, setRows] = useState<Row[]>([]);
   const [baseMap, setBaseMap] = useState<Map<string, BaseVal>>(new Map());
   const [raw, setRaw] = useState(false);
@@ -34,11 +36,9 @@ export default function KvEditor({ slug, config, layer, readOnly, onSaved }: KvE
   const [loading, setLoading] = useState(true);
   const [reloadNonce, setReloadNonce] = useState(0);
   const [err, setErr] = useState("");
-  const [msg, setMsg] = useState("");
   const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setMsg("");
     setErr("");
     setRaw(false);
     setLoading(true);
@@ -135,7 +135,6 @@ export default function KvEditor({ slug, config, layer, readOnly, onSaved }: KvE
 
   async function save() {
     setErr("");
-    setMsg("");
     const data = raw ? classify(parseRawLines(rawText), baseMap, secretMap(rows), isBase, config.format === "secret") : rows;
     for (const r of data) {
       const willWrite = isBase || r.state === "override" || r.state === "new";
@@ -155,7 +154,7 @@ export default function KvEditor({ slug, config, layer, readOnly, onSaved }: KvE
       );
     try {
       await api.putItems(slug, config.id, layer, payload);
-      setMsg(`Saved ${layer}.`);
+      toast(`Saved ${layer}.`);
       setRaw(false);
       setReloadNonce((n) => n + 1); // refetch so origins/badges re-settle
       onSaved?.(); // let siblings (resolved view) refresh — base may have changed too
@@ -250,7 +249,6 @@ export default function KvEditor({ slug, config, layer, readOnly, onSaved }: KvE
           <Button onClick={() => (raw ? fromRaw() : toRaw())}>{raw ? "Table view" : "Raw .env"}</Button>
           <Button onClick={() => fileInput.current?.click()}>Import .env</Button>
           <input ref={fileInput} type="file" accept=".env,text/plain" hidden onChange={importEnv} />
-          {msg && <Text sx={{ color: "success.fg" }}>{msg}</Text>}
         </Box>
       )}
       <Text sx={{ color: "fg.muted", fontSize: 0, display: "block", mt: 2 }}>

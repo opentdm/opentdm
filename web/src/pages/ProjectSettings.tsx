@@ -14,6 +14,7 @@ import {
   TextInput,
 } from "../ui/primer";
 import { api, canWrite, Environment, Project, Token as APIToken } from "../api";
+import { useToast } from "../lib/toast";
 import EnvironmentManager from "../components/EnvironmentManager";
 import MembersManager from "../components/MembersManager";
 
@@ -58,6 +59,7 @@ export default function ProjectSettings() {
 }
 
 function TokensSection({ slug }: { slug: string }) {
+  const toast = useToast();
   const [tokens, setTokens] = useState<APIToken[]>([]);
   const [envs, setEnvs] = useState<Environment[]>([]);
   const [name, setName] = useState("");
@@ -92,6 +94,7 @@ function TokensSection({ slug }: { slug: string }) {
       setMinted(res.token);
       setName("");
       await load();
+      toast("Service token created.");
     } catch (e: any) {
       setErr(e.message);
     }
@@ -102,6 +105,7 @@ function TokensSection({ slug }: { slug: string }) {
     try {
       await api.del(`/projects/${slug}/tokens/${id}`);
       await load();
+      toast("Service token revoked.");
     } catch (e: any) {
       setErr(e.message);
     }

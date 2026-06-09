@@ -5,6 +5,7 @@ import { Project } from "../api";
 import { api } from "../api";
 import { useProjectsCtx } from "../lib/projects";
 import { useFavourites } from "../lib/favourites";
+import { useToast } from "../lib/toast";
 import ProjectCard from "../components/ProjectCard";
 
 type SortKey = "name" | "role" | "recent";
@@ -157,6 +158,7 @@ export default function Projects() {
 }
 
 function NewProjectDialog({ onClose, onCreated }: { onClose: () => void; onCreated: () => Promise<void> }) {
+  const toast = useToast();
   const [name, setName] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -169,6 +171,7 @@ function NewProjectDialog({ onClose, onCreated }: { onClose: () => void; onCreat
       await api.post("/projects", { name });
       await onCreated();
       onClose();
+      toast("Project created.");
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Failed to create project");
       setBusy(false);
