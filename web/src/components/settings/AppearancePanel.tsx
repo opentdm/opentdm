@@ -16,7 +16,13 @@ interface Opt {
 const OPTIONS: Opt[] = [
   { mode: "light", label: "Light", icon: SunIcon, panel: "#ffffff", bar: "#afb8c1" },
   { mode: "dark", label: "Dark", icon: MoonIcon, panel: "#0d1117", bar: "#3d444d" },
-  { mode: "auto", label: "Auto", icon: DeviceDesktopIcon, panel: "linear-gradient(105deg,#ffffff 50%,#0d1117 50%)", bar: "#8b949e" },
+  {
+    mode: "auto",
+    label: "Auto",
+    icon: DeviceDesktopIcon,
+    panel: "linear-gradient(105deg,#ffffff 50%,#0d1117 50%)",
+    bar: "#8b949e",
+  },
 ];
 
 export default function AppearancePanel() {

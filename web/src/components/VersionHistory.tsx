@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ChevronDownIcon, ChevronUpIcon, HistoryIcon } from "@primer/octicons-react";
 import { Box, Button, Flash, Label, Text } from "../ui/primer";
 import { api, Config, DiffResult, VersionMeta } from "../api";
+import { errMessage } from "../lib/errors";
 
 interface VersionHistoryProps {
   slug: string;
@@ -19,8 +20,8 @@ export default function VersionHistory({ slug, config, layer, onRolledBack }: Ve
   async function load() {
     try {
       setVersions(await api.get<VersionMeta[]>(`/projects/${slug}/configs/${config.id}/versions?env=${layer}`));
-    } catch (e: any) {
-      setErr(e.message);
+    } catch (e) {
+      setErr(errMessage(e));
     }
   }
   useEffect(() => {
@@ -32,8 +33,8 @@ export default function VersionHistory({ slug, config, layer, onRolledBack }: Ve
     setErr("");
     try {
       setDiff(await api.get<DiffResult>(`/projects/${slug}/configs/${config.id}/diff?env=${layer}&from=${v}&to=0`));
-    } catch (e: any) {
-      setErr(e.message);
+    } catch (e) {
+      setErr(errMessage(e));
     }
   }
   async function rollback(v: number) {
@@ -42,8 +43,8 @@ export default function VersionHistory({ slug, config, layer, onRolledBack }: Ve
       await api.post(`/projects/${slug}/configs/${config.id}/rollback`, { env: layer, to_version: v });
       await load();
       onRolledBack();
-    } catch (e: any) {
-      setErr(e.message);
+    } catch (e) {
+      setErr(errMessage(e));
     }
   }
 

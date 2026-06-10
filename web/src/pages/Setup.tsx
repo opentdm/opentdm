@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { Box, Button, FormControl, Flash, Heading, Text, TextInput } from "../ui/primer";
 import { api } from "../api";
+import { errMessage } from "../lib/errors";
 
 export default function Setup({ onDone }: { onDone: () => void }) {
   const [setupToken, setSetupToken] = useState("");
@@ -22,8 +23,8 @@ export default function Setup({ onDone }: { onDone: () => void }) {
         password,
       });
       onDone();
-    } catch (e: any) {
-      setErr(e.message || "Setup failed");
+    } catch (e) {
+      setErr(errMessage(e) || "Setup failed");
     } finally {
       setBusy(false);
     }

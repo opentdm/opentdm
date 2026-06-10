@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Box, Button, Flash, FormControl, Heading, Spinner, Text, TextInput } from "../ui/primer";
 import { api, InvitationInfo } from "../api";
+import { errMessage } from "../lib/errors";
 
 // Public page reached from an invitation link. Shows the project + role, lets the
 // invitee pick a username/password, then creates the account + membership and
@@ -36,8 +37,8 @@ export default function AcceptInvite({ onDone }: { onDone: () => void | Promise<
       await api.acceptInvitation(token, { username, password });
       await onDone(); // refresh auth state and WAIT for `me` before navigating
       nav(`/projects/${info?.project_slug ?? ""}`);
-    } catch (e: any) {
-      setErr(e.message);
+    } catch (e) {
+      setErr(errMessage(e));
     }
   }
 

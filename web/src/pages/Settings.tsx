@@ -17,9 +17,7 @@ const ADMIN_SECTIONS: Section[] = ["activity", "users"];
 // The active section comes from the /settings/:section route param.
 export default function Settings({ me }: { me: User }) {
   const { section } = useParams();
-  const current: Section = (SECTIONS as readonly string[]).includes(section ?? "")
-    ? (section as Section)
-    : "account";
+  const current: Section = (SECTIONS as readonly string[]).includes(section ?? "") ? (section as Section) : "account";
 
   // Default-deny admin sections (UX gate; the API enforces too).
   if (ADMIN_SECTIONS.includes(current) && !me.is_admin) {

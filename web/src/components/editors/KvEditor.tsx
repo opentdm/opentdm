@@ -2,6 +2,7 @@ import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { Box, Button, Flash, IconButton, Label, Spinner, Text, TextInput, Textarea } from "../../ui/primer";
 import { EyeClosedIcon, EyeIcon, LockIcon, TrashIcon } from "@primer/octicons-react";
 import { api, Config, Item } from "../../api";
+import { errMessage } from "../../lib/errors";
 import { buildRows, MergedRow, RowState } from "../../lib/resolve";
 import { useToast } from "../../lib/toast";
 
@@ -63,7 +64,7 @@ export default function KvEditor({ slug, config, layer, readOnly, onSaved }: KvE
       setRows(buildRows(baseItems, layerItems, false).map((r) => ({ ...r, reveal: false })));
     };
     load()
-      .catch((e: any) => alive && setErr(e.message))
+      .catch((e) => alive && setErr(errMessage(e)))
       .finally(() => alive && setLoading(false));
     return () => {
       alive = false;
@@ -76,12 +77,18 @@ export default function KvEditor({ slug, config, layer, readOnly, onSaved }: KvE
   // Editing an inherited (or restoring a tombstoned) key turns it into an override.
   function editValue(i: number, value: string) {
     setRows((rs) =>
-      rs.map((r, idx) => (idx === i ? { ...r, value, state: r.state === "inherited" || r.state === "tombstone" ? "override" : r.state } : r)),
+      rs.map((r, idx) =>
+        idx === i
+          ? { ...r, value, state: r.state === "inherited" || r.state === "tombstone" ? "override" : r.state }
+          : r,
+      ),
     );
   }
   function toggleSecret(i: number) {
     setRows((rs) =>
-      rs.map((r, idx) => (idx === i ? { ...r, is_secret: !r.is_secret, state: r.state === "inherited" ? "override" : r.state } : r)),
+      rs.map((r, idx) =>
+        idx === i ? { ...r, is_secret: !r.is_secret, state: r.state === "inherited" ? "override" : r.state } : r,
+      ),
     );
   }
   function removeRow(i: number) {
@@ -94,7 +101,9 @@ export default function KvEditor({ slug, config, layer, readOnly, onSaved }: KvE
       if (r.state === "override" && r.baseValue !== undefined) {
         // Revert an override back to tracking base.
         return rs.map((x, idx) =>
-          idx === i ? { ...x, value: x.baseValue ?? "", is_secret: x.baseSecret ?? false, reveal: false, state: "inherited" } : x,
+          idx === i
+            ? { ...x, value: x.baseValue ?? "", is_secret: x.baseSecret ?? false, reveal: false, state: "inherited" }
+            : x,
         );
       }
       // base / new / override-without-base: drop the row entirely.
@@ -104,7 +113,9 @@ export default function KvEditor({ slug, config, layer, readOnly, onSaved }: KvE
   function restoreRow(i: number) {
     setRows((rs) =>
       rs.map((x, idx) =>
-        idx === i ? { ...x, value: x.baseValue ?? "", is_secret: x.baseSecret ?? false, reveal: false, state: "inherited" } : x,
+        idx === i
+          ? { ...x, value: x.baseValue ?? "", is_secret: x.baseSecret ?? false, reveal: false, state: "inherited" }
+          : x,
       ),
     );
   }
@@ -143,7 +154,9 @@ export default function KvEditor({ slug, config, layer, readOnly, onSaved }: KvE
 
   async function save() {
     setErr("");
-    const data = raw ? classify(parseRawLines(rawText), baseMap, secretMap(rows), isBase, config.format === "secret") : rows;
+    const data = raw
+      ? classify(parseRawLines(rawText), baseMap, secretMap(rows), isBase, config.format === "secret")
+      : rows;
     for (const r of data) {
       const willWrite = isBase || r.state === "override" || r.state === "new";
       if (willWrite && !keyRe.test(r.key)) {
@@ -166,8 +179,8 @@ export default function KvEditor({ slug, config, layer, readOnly, onSaved }: KvE
       setRaw(false);
       setReloadNonce((n) => n + 1); // refetch so origins/badges re-settle
       onSaved?.(); // let siblings (resolved view) refresh — base may have changed too
-    } catch (e: any) {
-      setErr(e.message);
+    } catch (e) {
+      setErr(errMessage(e));
     }
   }
 
@@ -180,14 +193,26 @@ export default function KvEditor({ slug, config, layer, readOnly, onSaved }: KvE
         </Flash>
       )}
       {raw ? (
-        <Textarea block rows={10} value={rawText} onChange={(e) => setRawText(e.target.value)} sx={{ fontFamily: "mono" }} />
+        <Textarea
+          block
+          rows={10}
+          value={rawText}
+          onChange={(e) => setRawText(e.target.value)}
+          sx={{ fontFamily: "mono" }}
+        />
       ) : (
         <Box sx={{ display: "grid", gap: 1 }}>
-          {rows.length === 0 && <Text sx={{ color: "fg.muted" }}>No variables{isBase ? "" : " for this environment"}.</Text>}
+          {rows.length === 0 && (
+            <Text sx={{ color: "fg.muted" }}>No variables{isBase ? "" : " for this environment"}.</Text>
+          )}
           {rows.length > 0 && (
             <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-              <Text sx={{ width: 240, fontSize: 0, fontWeight: "bold", color: "fg.muted", textTransform: "uppercase" }}>KEY</Text>
-              <Text sx={{ flex: 1, fontSize: 0, fontWeight: "bold", color: "fg.muted", textTransform: "uppercase" }}>VALUE</Text>
+              <Text sx={{ width: 240, fontSize: 0, fontWeight: "bold", color: "fg.muted", textTransform: "uppercase" }}>
+                KEY
+              </Text>
+              <Text sx={{ flex: 1, fontSize: 0, fontWeight: "bold", color: "fg.muted", textTransform: "uppercase" }}>
+                VALUE
+              </Text>
             </Box>
           )}
           {rows.map((r, i) =>
@@ -272,8 +297,8 @@ export default function KvEditor({ slug, config, layer, readOnly, onSaved }: KvE
           </>
         ) : (
           <>
-            Greyed rows are inherited from <b>base</b>. Edit one to override it for <b>{layer}</b>; delete one to unset it
-            here.
+            Greyed rows are inherited from <b>base</b>. Edit one to override it for <b>{layer}</b>; delete one to unset
+            it here.
           </>
         )}
       </Text>
@@ -340,8 +365,24 @@ function classify(
     if (b) {
       rows.push(
         p.value === b.value && is_secret === b.is_secret
-          ? { key: p.key, value: b.value, is_secret: b.is_secret, reveal: false, baseValue: b.value, baseSecret: b.is_secret, state: "inherited" }
-          : { key: p.key, value: p.value, is_secret, reveal: false, baseValue: b.value, baseSecret: b.is_secret, state: "override" },
+          ? {
+              key: p.key,
+              value: b.value,
+              is_secret: b.is_secret,
+              reveal: false,
+              baseValue: b.value,
+              baseSecret: b.is_secret,
+              state: "inherited",
+            }
+          : {
+              key: p.key,
+              value: p.value,
+              is_secret,
+              reveal: false,
+              baseValue: b.value,
+              baseSecret: b.is_secret,
+              state: "override",
+            },
       );
     } else {
       rows.push({ key: p.key, value: p.value, is_secret, reveal: false, state: "new" });
@@ -349,7 +390,15 @@ function classify(
   }
   for (const [key, b] of baseMap) {
     if (!seen.has(key)) {
-      rows.push({ key, value: "", is_secret: false, reveal: false, baseValue: b.value, baseSecret: b.is_secret, state: "tombstone" });
+      rows.push({
+        key,
+        value: "",
+        is_secret: false,
+        reveal: false,
+        baseValue: b.value,
+        baseSecret: b.is_secret,
+        state: "tombstone",
+      });
     }
   }
   rows.sort((a, b) => a.key.localeCompare(b.key));

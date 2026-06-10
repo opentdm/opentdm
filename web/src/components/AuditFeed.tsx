@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Box, Button, Flash, Label, Spinner, Text } from "../ui/primer";
 import { AuditEntry, auditLabel } from "../api";
+import { errMessage } from "../lib/errors";
 import Avatar from "./Avatar";
 
 function statusVariant(status: number): "success" | "attention" | "danger" | "secondary" {
@@ -43,8 +44,8 @@ export default function AuditFeed({ load }: AuditFeedProps) {
       const res = await load(before);
       setEntries((prev) => (before ? [...prev, ...res.entries] : res.entries));
       setNext(res.next);
-    } catch (e: any) {
-      setErr(e.message);
+    } catch (e) {
+      setErr(errMessage(e));
     } finally {
       setPaging(false);
       setLoading(false);

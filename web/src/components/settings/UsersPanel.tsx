@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Box, Button, Checkbox, Flash, FormControl, Heading, Label, Spinner, Text } from "../../ui/primer";
 import { AdminUser, api } from "../../api";
+import { errMessage } from "../../lib/errors";
 import Overline from "../Overline";
 import Avatar from "../Avatar";
 
@@ -14,8 +15,8 @@ export default function UsersPanel({ meId }: { meId?: string }) {
     setErr("");
     try {
       setUsers(await api.listUsers());
-    } catch (e: any) {
-      setErr(e.message);
+    } catch (e) {
+      setErr(errMessage(e));
     }
   }
   useEffect(() => {
@@ -27,8 +28,8 @@ export default function UsersPanel({ meId }: { meId?: string }) {
     try {
       await api.updateUser(u.id, patch);
       await load();
-    } catch (e: any) {
-      setErr(e.message);
+    } catch (e) {
+      setErr(errMessage(e));
     }
   }
 
@@ -63,7 +64,10 @@ export default function UsersPanel({ meId }: { meId?: string }) {
           >
             <Avatar name={u.username} size={28} />
             <Box>
-              <Text sx={{ fontWeight: "bold" }}>{u.username}{u.id === meId ? " (you)" : ""}</Text>
+              <Text sx={{ fontWeight: "bold" }}>
+                {u.username}
+                {u.id === meId ? " (you)" : ""}
+              </Text>
               <Text sx={{ color: "fg.muted", fontSize: 0, display: "block" }}>{u.email}</Text>
             </Box>
             {u.is_admin && <Label variant="accent">admin</Label>}

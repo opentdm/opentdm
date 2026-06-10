@@ -16,6 +16,7 @@ import {
 } from "../ui/primer";
 import { ColumnsIcon, CopyIcon, EyeClosedIcon, EyeIcon, GearIcon, PencilIcon, TrashIcon } from "@primer/octicons-react";
 import { api, canWrite, Config, Environment, Project } from "../api";
+import { errMessage } from "../lib/errors";
 import { useToast } from "../lib/toast";
 import EditorDispatch from "../components/editors/EditorDispatch";
 import VersionHistory from "../components/VersionHistory";
@@ -57,7 +58,7 @@ export default function ObjectPage() {
         setConfigs(cs);
         setEnvs(es);
       })
-      .catch((e: any) => setErr(e.message));
+      .catch((e) => setErr(errMessage(e)));
   }, [slug]);
 
   // The selected object reloads when navigating between files in the tree.
@@ -68,7 +69,7 @@ export default function ObjectPage() {
     api
       .getConfig(slug, configId)
       .then(setConfig)
-      .catch((e: any) => setErr(e.message));
+      .catch((e) => setErr(errMessage(e)));
   }, [slug, configId]);
 
   async function remove() {
@@ -77,8 +78,8 @@ export default function ObjectPage() {
       await api.archiveConfig(slug, configId);
       toast("Object deleted.");
       nav(`/projects/${slug}`);
-    } catch (e: any) {
-      setErr(e.message);
+    } catch (e) {
+      setErr(errMessage(e));
     }
   }
 
@@ -254,7 +255,8 @@ export default function ObjectPage() {
           confirmButtonType="danger"
           onClose={(gesture) => (gesture === "confirm" ? void remove() : setConfirmDelete(false))}
         >
-          This archives the object across all environments — its values, file content, and version history stop resolving.
+          This archives the object across all environments — its values, file content, and version history stop
+          resolving.
         </ConfirmationDialog>
       )}
     </Box>
@@ -287,8 +289,8 @@ function SettingsPanel({
         description,
       });
       onSaved(updated);
-    } catch (e: any) {
-      setErr(e.message);
+    } catch (e) {
+      setErr(errMessage(e));
     }
   }
 

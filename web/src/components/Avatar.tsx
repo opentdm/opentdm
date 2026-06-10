@@ -20,7 +20,9 @@ export default function Avatar({ name, size = 28 }: AvatarProps) {
   return (
     <span
       className="otdm-avatar"
-      style={{ width: size, height: size, fontSize: Math.round(size * 0.4), "--h": hueFromString(name) } as CSSProperties}
+      style={
+        { width: size, height: size, fontSize: Math.round(size * 0.4), "--h": hueFromString(name) } as CSSProperties
+      }
       aria-hidden="true"
     >
       {initials(name)}

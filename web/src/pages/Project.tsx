@@ -1,18 +1,18 @@
 import { useEffect, useState } from "react";
 import { Link as RouterLink, useParams } from "react-router-dom";
+import { Box, Button, Dialog, Flash, Heading, IconButton, Label, Spinner, Text } from "../ui/primer";
 import {
-  Box,
-  Button,
-  Dialog,
-  Flash,
-  Heading,
-  IconButton,
-  Label,
-  Spinner,
-  Text,
-} from "../ui/primer";
-import { ChevronRightIcon, EyeIcon, FileIcon, GearIcon, KeyIcon, PlusIcon, PulseIcon, StackIcon } from "@primer/octicons-react";
+  ChevronRightIcon,
+  EyeIcon,
+  FileIcon,
+  GearIcon,
+  KeyIcon,
+  PlusIcon,
+  PulseIcon,
+  StackIcon,
+} from "@primer/octicons-react";
 import { api, canWrite, Config, Environment, Project } from "../api";
+import { errMessage } from "../lib/errors";
 import ResolvedView from "../components/ResolvedView";
 import AddObjectDialog from "../components/AddObjectDialog";
 import Overline from "../components/Overline";
@@ -37,8 +37,8 @@ export default function ProjectPage() {
       setEnvs(e);
       setConfigs(c);
       setMemberCount(m.length);
-    } catch (e: any) {
-      setErr(e.message);
+    } catch (e) {
+      setErr(errMessage(e));
     }
   }
   useEffect(() => {
@@ -55,12 +55,17 @@ export default function ProjectPage() {
         <Box>
           <Overline>Project</Overline>
           <Heading sx={{ fontSize: 4 }}>{project.name}</Heading>
-          {project.description && <Text sx={{ color: "fg.muted", display: "block", mt: 1 }}>{project.description}</Text>}
+          {project.description && (
+            <Text sx={{ color: "fg.muted", display: "block", mt: 1 }}>{project.description}</Text>
+          )}
           <Box sx={{ mt: 2, display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
-            <Label variant="accent" className="otdm-pill-accent">base</Label>
+            <Label variant="accent" className="otdm-pill-accent">
+              base
+            </Label>
             {envs.map((e) => (
               <Label key={e.id} variant="secondary">
-                {e.slug}{e.is_default ? " · default" : ""}
+                {e.slug}
+                {e.is_default ? " · default" : ""}
               </Label>
             ))}
           </Box>
@@ -96,7 +101,13 @@ export default function ProjectPage() {
         </div>
       </Box>
 
-      <ObjectsSection slug={slug} configs={configs} envs={envs} canWrite={canWrite(project.your_role)} onChange={loadAll} />
+      <ObjectsSection
+        slug={slug}
+        configs={configs}
+        envs={envs}
+        canWrite={canWrite(project.your_role)}
+        onChange={loadAll}
+      />
     </Box>
   );
 }
@@ -170,9 +181,7 @@ function ObjectsSection({
               </Box>
               <Label variant="secondary">{c.format}</Label>
             </Box>
-            {c.kind === "variable" && (
-              <Text sx={{ color: "fg.muted", fontSize: 0 }}>{c.key_count ?? 0} keys</Text>
-            )}
+            {c.kind === "variable" && <Text sx={{ color: "fg.muted", fontSize: 0 }}>{c.key_count ?? 0} keys</Text>}
             {c.kind === "variable" && (
               <IconButton
                 icon={EyeIcon}
