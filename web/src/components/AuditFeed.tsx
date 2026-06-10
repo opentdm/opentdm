@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Box, Button, Flash, Label, Spinner, Text } from "../ui/primer";
 import { AuditEntry, auditLabel } from "../api";
 import { errMessage } from "../lib/errors";
-import Avatar from "./Avatar";
+import { Avatar } from "./ui";
 
 function statusVariant(status: number): "success" | "attention" | "danger" | "secondary" {
   if (status >= 200 && status < 300) return "success";

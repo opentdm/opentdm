@@ -1,9 +1,9 @@
 import { CSSProperties } from "react";
-import { hueFromString } from "../lib/color";
+import { hueFromString } from "../../lib/color";
 
 // Initials for an avatar: first letters of the first two name parts, else the
-// first two characters (matches the Profile pane's initials() helper).
-function initials(name: string): string {
+// first two characters. Shared so the Profile pane and the audit feed agree.
+export function initials(name: string): string {
   const parts = name.split(/[.\-_@\s]+/).filter(Boolean);
   const letters = parts.length >= 2 ? parts[0][0] + parts[1][0] : name.slice(0, 2);
   return letters.toUpperCase();

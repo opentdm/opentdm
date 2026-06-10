@@ -7,7 +7,7 @@ import { useProjectsCtx } from "../lib/projects";
 import { useFavourites } from "../lib/favourites";
 import { useToast } from "../lib/toast";
 import ProjectCard from "../components/ProjectCard";
-import Overline from "../components/Overline";
+import { Overline } from "../components/ui";
 
 type SortKey = "name" | "role" | "recent";
 type GroupKey = "none" | "role";

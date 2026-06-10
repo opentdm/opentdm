@@ -2,7 +2,7 @@ import { CSSProperties } from "react";
 import { Box, Heading, Text } from "../../ui/primer";
 import { CheckIcon, DeviceDesktopIcon, MoonIcon, SunIcon } from "@primer/octicons-react";
 import { ColorMode, useColorMode } from "../../lib/colorMode";
-import Overline from "../Overline";
+import { Overline } from "../ui";
 
 // Swatch colors are intentionally literal (not functional vars) so each card
 // previews its own theme regardless of the currently-active mode.

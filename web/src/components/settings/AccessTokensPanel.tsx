@@ -4,7 +4,7 @@ import { Box, Button, Flash, FormControl, Heading, Label, Text, TextInput } from
 import { api, PAT } from "../../api";
 import { errMessage } from "../../lib/errors";
 import { useToast } from "../../lib/toast";
-import Overline from "../Overline";
+import { Overline } from "../ui";
 
 // Personal access tokens (otdmu_…). Moved verbatim from the old standalone
 // Settings page into the consolidated Settings → Account → Access tokens panel.
