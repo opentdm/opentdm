@@ -8,7 +8,7 @@ import globals from "globals";
 // @primer/react: every component must import Primer through src/ui/primer (the
 // sx shim) so `sx` keeps working — the one exception is the shim itself.
 export default tseslint.config(
-  { ignores: ["node_modules", "dist"] },
+  { ignores: ["node_modules", "dist", "e2e/"] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

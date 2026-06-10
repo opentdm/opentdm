@@ -13,7 +13,8 @@
     "format": "prettier --write \"src/**/*.{ts,tsx}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx}\"",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "e2e": "bash e2e/run.sh"
   },
   "dependencies": {
     "@codemirror/lang-json": "^6.0.2",
@@ -31,6 +32,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.60.0",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^6.0.2",
