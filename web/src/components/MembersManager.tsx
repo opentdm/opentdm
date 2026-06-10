@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { Box, Button, Flash, FormControl, Heading, IconButton, Label, Select, Text, TextInput } from "../ui/primer";
 import { TrashIcon } from "@primer/octicons-react";
 import { api, canManage, Invitation, Member } from "../api";
+import { errMessage } from "../lib/errors";
 import { useToast } from "../lib/toast";
 
 const ROLES = ["viewer", "editor", "owner"];
@@ -31,8 +32,8 @@ export default function MembersManager({ slug, role }: MembersManagerProps) {
     try {
       setMembers(await api.listMembers(slug));
       if (manage) setInvitations(await api.listInvitations(slug));
-    } catch (e: any) {
-      setErr(e.message);
+    } catch (e) {
+      setErr(errMessage(e));
     }
   }
 
@@ -47,8 +48,8 @@ export default function MembersManager({ slug, role }: MembersManagerProps) {
       if (!res.email_sent && res.accept_url) setInviteLink(res.accept_url);
       await load();
       toast(res.email_sent ? "Invitation sent." : "Invitation created.");
-    } catch (e: any) {
-      setErr(e.message);
+    } catch (e) {
+      setErr(errMessage(e));
     }
   }
   useEffect(() => {
@@ -61,8 +62,8 @@ export default function MembersManager({ slug, role }: MembersManagerProps) {
       await fn();
       await load();
       toast(successMsg);
-    } catch (e: any) {
-      setErr(e.message);
+    } catch (e) {
+      setErr(errMessage(e));
     }
   }
 
@@ -86,7 +87,15 @@ export default function MembersManager({ slug, role }: MembersManagerProps) {
           {err}
         </Flash>
       )}
-      <Box sx={{ borderWidth: 1, borderStyle: "solid", borderColor: "border.default", borderRadius: 2, mb: manage ? 3 : 0 }}>
+      <Box
+        sx={{
+          borderWidth: 1,
+          borderStyle: "solid",
+          borderColor: "border.default",
+          borderRadius: 2,
+          mb: manage ? 3 : 0,
+        }}
+      >
         {members.length === 0 && <Box sx={{ p: 3, color: "fg.muted" }}>No members.</Box>}
         {members.map((m, i) => (
           <Box
@@ -165,7 +174,11 @@ export default function MembersManager({ slug, role }: MembersManagerProps) {
               </Box>
             </Flash>
           )}
-          <Box as="form" onSubmit={invite} sx={{ display: "flex", gap: 2, alignItems: "flex-end", flexWrap: "wrap", mb: 3 }}>
+          <Box
+            as="form"
+            onSubmit={invite}
+            sx={{ display: "flex", gap: 2, alignItems: "flex-end", flexWrap: "wrap", mb: 3 }}
+          >
             <FormControl>
               <FormControl.Label>Email</FormControl.Label>
               <TextInput

@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { KeyIcon, PlusIcon } from "@primer/octicons-react";
 import { Box, Button, Flash, FormControl, Heading, Label, Text, TextInput } from "../../ui/primer";
 import { api, PAT } from "../../api";
+import { errMessage } from "../../lib/errors";
 import { useToast } from "../../lib/toast";
 import Overline from "../Overline";
 
@@ -19,8 +20,8 @@ export default function AccessTokensPanel() {
   async function load() {
     try {
       setPats(await api.get<PAT[]>("/pats"));
-    } catch (e: any) {
-      setErr(e.message);
+    } catch (e) {
+      setErr(errMessage(e));
     }
   }
   useEffect(() => {
@@ -37,8 +38,8 @@ export default function AccessTokensPanel() {
       setName("");
       await load();
       toast("Token created.");
-    } catch (e: any) {
-      setErr(e.message);
+    } catch (e) {
+      setErr(errMessage(e));
     }
   }
   async function revoke(id: string) {
@@ -46,8 +47,8 @@ export default function AccessTokensPanel() {
       await api.del(`/pats/${id}`);
       await load();
       toast("Token revoked.");
-    } catch (e: any) {
-      setErr(e.message);
+    } catch (e) {
+      setErr(errMessage(e));
     }
   }
 
@@ -78,7 +79,11 @@ export default function AccessTokensPanel() {
         </Flash>
       )}
       {showCreate && (
-        <Box as="form" onSubmit={create} sx={{ display: "flex", gap: 2, alignItems: "flex-end", mb: 3, flexWrap: "wrap" }}>
+        <Box
+          as="form"
+          onSubmit={create}
+          sx={{ display: "flex", gap: 2, alignItems: "flex-end", mb: 3, flexWrap: "wrap" }}
+        >
           <FormControl>
             <FormControl.Label>Name</FormControl.Label>
             <TextInput value={name} onChange={(e) => setName(e.target.value)} placeholder="laptop-cli" />
@@ -97,7 +102,15 @@ export default function AccessTokensPanel() {
         {pats.map((p) => (
           <Box
             key={p.id}
-            sx={{ p: 3, borderBottomWidth: 1, borderBottomStyle: "solid", borderColor: "border.muted", display: "flex", gap: 2, alignItems: "center" }}
+            sx={{
+              p: 3,
+              borderBottomWidth: 1,
+              borderBottomStyle: "solid",
+              borderColor: "border.muted",
+              display: "flex",
+              gap: 2,
+              alignItems: "center",
+            }}
           >
             <Box sx={{ color: "fg.muted", display: "flex" }}>
               <KeyIcon />

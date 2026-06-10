@@ -60,32 +60,90 @@ function colorVal(v: string): string {
   return COLOR_TOKENS[v] ?? v;
 }
 
-const MARGIN: Record<string, string> = { m: "margin", mt: "marginTop", mb: "marginBottom", ml: "marginLeft", mr: "marginRight" };
-const PADDING: Record<string, string> = { p: "padding", pt: "paddingTop", pb: "paddingBottom", pl: "paddingLeft", pr: "paddingRight" };
+const MARGIN: Record<string, string> = {
+  m: "margin",
+  mt: "marginTop",
+  mb: "marginBottom",
+  ml: "marginLeft",
+  mr: "marginRight",
+};
+const PADDING: Record<string, string> = {
+  p: "padding",
+  pt: "paddingTop",
+  pb: "paddingBottom",
+  pl: "paddingLeft",
+  pr: "paddingRight",
+};
 
 export function sxToStyle(sx?: Sx): React.CSSProperties | undefined {
   if (!sx) return undefined;
   const s: Record<string, string | number> = {};
   for (const [k, raw] of Object.entries(sx)) {
     if (raw == null) continue;
-    if (k in MARGIN) { s[MARGIN[k]] = spaceVal(raw); continue; }
-    if (k in PADDING) { s[PADDING[k]] = spaceVal(raw); continue; }
+    if (k in MARGIN) {
+      s[MARGIN[k]] = spaceVal(raw);
+      continue;
+    }
+    if (k in PADDING) {
+      s[PADDING[k]] = spaceVal(raw);
+      continue;
+    }
     switch (k) {
-      case "gap": s.gap = spaceVal(raw); break;
-      case "mx": { const v = spaceVal(raw); s.marginLeft = v; s.marginRight = v; break; }
-      case "my": { const v = spaceVal(raw); s.marginTop = v; s.marginBottom = v; break; }
-      case "px": { const v = spaceVal(raw); s.paddingLeft = v; s.paddingRight = v; break; }
-      case "py": { const v = spaceVal(raw); s.paddingTop = v; s.paddingBottom = v; break; }
-      case "fontSize": s.fontSize = typeof raw === "number" ? (FONT_SIZES[raw] ?? raw) : raw; break;
-      case "borderRadius": s.borderRadius = typeof raw === "number" ? (RADII[raw] ?? raw) : raw; break;
-      case "color": s.color = colorVal(String(raw)); break;
+      case "gap":
+        s.gap = spaceVal(raw);
+        break;
+      case "mx": {
+        const v = spaceVal(raw);
+        s.marginLeft = v;
+        s.marginRight = v;
+        break;
+      }
+      case "my": {
+        const v = spaceVal(raw);
+        s.marginTop = v;
+        s.marginBottom = v;
+        break;
+      }
+      case "px": {
+        const v = spaceVal(raw);
+        s.paddingLeft = v;
+        s.paddingRight = v;
+        break;
+      }
+      case "py": {
+        const v = spaceVal(raw);
+        s.paddingTop = v;
+        s.paddingBottom = v;
+        break;
+      }
+      case "fontSize":
+        s.fontSize = typeof raw === "number" ? (FONT_SIZES[raw] ?? raw) : raw;
+        break;
+      case "borderRadius":
+        s.borderRadius = typeof raw === "number" ? (RADII[raw] ?? raw) : raw;
+        break;
+      case "color":
+        s.color = colorVal(String(raw));
+        break;
       case "bg":
-      case "backgroundColor": s.backgroundColor = colorVal(String(raw)); break;
-      case "borderColor": s.borderColor = colorVal(String(raw)); break;
-      case "borderBottomColor": s.borderBottomColor = colorVal(String(raw)); break;
-      case "borderTopColor": s.borderTopColor = colorVal(String(raw)); break;
-      case "fontFamily": s.fontFamily = raw === "mono" ? "var(--fontStack-monospace, ui-monospace, SFMono-Regular, monospace)" : String(raw); break;
-      default: s[k] = raw; // display, flex*, align*, justify*, width, border*, overflow, cursor, … pass through
+      case "backgroundColor":
+        s.backgroundColor = colorVal(String(raw));
+        break;
+      case "borderColor":
+        s.borderColor = colorVal(String(raw));
+        break;
+      case "borderBottomColor":
+        s.borderBottomColor = colorVal(String(raw));
+        break;
+      case "borderTopColor":
+        s.borderTopColor = colorVal(String(raw));
+        break;
+      case "fontFamily":
+        s.fontFamily =
+          raw === "mono" ? "var(--fontStack-monospace, ui-monospace, SFMono-Regular, monospace)" : String(raw);
+        break;
+      default:
+        s[k] = raw; // display, flex*, align*, justify*, width, border*, overflow, cursor, … pass through
     }
   }
   return s as React.CSSProperties;

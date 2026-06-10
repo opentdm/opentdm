@@ -13,6 +13,7 @@ import {
 } from "../ui/primer";
 import { ChevronDownIcon, ChevronUpIcon, PencilIcon, TrashIcon } from "@primer/octicons-react";
 import { api, Environment } from "../api";
+import { errMessage } from "../lib/errors";
 import { useToast } from "../lib/toast";
 
 interface EnvironmentManagerProps {
@@ -35,8 +36,8 @@ export default function EnvironmentManager({ slug }: EnvironmentManagerProps) {
     setErr("");
     try {
       setEnvs(await api.listEnvs(slug));
-    } catch (e: any) {
-      setErr(e.message);
+    } catch (e) {
+      setErr(errMessage(e));
     } finally {
       setLoading(false);
     }
@@ -51,8 +52,8 @@ export default function EnvironmentManager({ slug }: EnvironmentManagerProps) {
       await fn();
       await load();
       toast(successMsg);
-    } catch (e: any) {
-      setErr(e.message);
+    } catch (e) {
+      setErr(errMessage(e));
     }
   }
 
@@ -177,8 +178,8 @@ export default function EnvironmentManager({ slug }: EnvironmentManagerProps) {
             if (gesture === "confirm" && env) void run(() => api.deleteEnv(slug, env.id));
           }}
         >
-          This permanently removes all values, file content, and version history in <b>{deleting.slug}</b>, and any service
-          tokens scoped to it lose access. This cannot be undone.
+          This permanently removes all values, file content, and version history in <b>{deleting.slug}</b>, and any
+          service tokens scoped to it lose access. This cannot be undone.
         </ConfirmationDialog>
       )}
     </Box>

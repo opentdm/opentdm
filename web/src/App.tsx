@@ -58,13 +58,7 @@ export default function App() {
       <Route
         path="/setup"
         element={
-          me ? (
-            <Navigate to="/" replace />
-          ) : needsSetup ? (
-            <Setup onDone={refresh} />
-          ) : (
-            <Navigate to="/login" replace />
-          )
+          me ? <Navigate to="/" replace /> : needsSetup ? <Setup onDone={refresh} /> : <Navigate to="/login" replace />
         }
       />
       <Route path="/login" element={me ? <Navigate to="/" replace /> : <Login onDone={refresh} />} />
@@ -72,13 +66,7 @@ export default function App() {
       <Route path="/accept-invite" element={<AcceptInvite onDone={refresh} />} />
       <Route
         path="/*"
-        element={
-          me ? (
-            <Shell me={me} onLogout={refresh} />
-          ) : (
-            <Navigate to={needsSetup ? "/setup" : "/login"} replace />
-          )
-        }
+        element={me ? <Shell me={me} onLogout={refresh} /> : <Navigate to={needsSetup ? "/setup" : "/login"} replace />}
       />
     </Routes>
   );
@@ -114,17 +102,17 @@ function Shell({ me, onLogout }: { me: User; onLogout: () => void }) {
           <Box className="otdm-content-inner">
             <div className="otdm-page" key={pathname}>
               <Routes>
-              <Route path="/" element={<Projects />} />
-              <Route path="/projects/:slug" element={<ProjectPage />} />
-              <Route path="/projects/:slug/configs/:configId" element={<ObjectPage />} />
-              <Route path="/projects/:slug/settings" element={<ProjectSettings />} />
-              <Route path="/projects/:slug/activity" element={<Activity />} />
-              <Route path="/settings" element={<Settings me={me} />} />
-              <Route path="/settings/:section" element={<Settings me={me} />} />
-              {/* Back-compat for the old top-level admin routes. */}
-              <Route path="/users" element={<Navigate to="/settings/users" replace />} />
-              <Route path="/activity" element={<Navigate to="/settings/activity" replace />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
+                <Route path="/" element={<Projects />} />
+                <Route path="/projects/:slug" element={<ProjectPage />} />
+                <Route path="/projects/:slug/configs/:configId" element={<ObjectPage />} />
+                <Route path="/projects/:slug/settings" element={<ProjectSettings />} />
+                <Route path="/projects/:slug/activity" element={<Activity />} />
+                <Route path="/settings" element={<Settings me={me} />} />
+                <Route path="/settings/:section" element={<Settings me={me} />} />
+                {/* Back-compat for the old top-level admin routes. */}
+                <Route path="/users" element={<Navigate to="/settings/users" replace />} />
+                <Route path="/activity" element={<Navigate to="/settings/activity" replace />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </div>
           </Box>

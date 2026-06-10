@@ -14,6 +14,7 @@ import {
   UnderlineNav,
 } from "../ui/primer";
 import { api, canWrite, Environment, Project, Token as APIToken } from "../api";
+import { errMessage } from "../lib/errors";
 import { useToast } from "../lib/toast";
 import EnvironmentManager from "../components/EnvironmentManager";
 import MembersManager from "../components/MembersManager";
@@ -36,7 +37,7 @@ export default function ProjectSettings() {
     api
       .get<Project>(`/projects/${slug}`)
       .then(setProject)
-      .catch((e: any) => setErr(e.message));
+      .catch((e) => setErr(errMessage(e)));
   }, [slug]);
 
   if (!project) return err ? <Flash variant="danger">{err}</Flash> : <Spinner />;
@@ -47,9 +48,7 @@ export default function ProjectSettings() {
   const writable = canWrite(project.your_role);
 
   const readOnlyNote = (
-    <Text sx={{ color: "fg.muted" }}>
-      You have read-only (viewer) access — this is limited to editors and owners.
-    </Text>
+    <Text sx={{ color: "fg.muted" }}>You have read-only (viewer) access — this is limited to editors and owners.</Text>
   );
 
   return (
@@ -93,8 +92,8 @@ function TokensSection({ slug }: { slug: string }) {
       setTokens(t);
       setEnvs(e);
       setEnv((cur) => cur || e[0]?.slug || "");
-    } catch (e: any) {
-      setErr(e.message);
+    } catch (e) {
+      setErr(errMessage(e));
     }
   }
   useEffect(() => {
@@ -115,8 +114,8 @@ function TokensSection({ slug }: { slug: string }) {
       setName("");
       await load();
       toast("Service token created.");
-    } catch (e: any) {
-      setErr(e.message);
+    } catch (e) {
+      setErr(errMessage(e));
     }
   }
 
@@ -126,8 +125,8 @@ function TokensSection({ slug }: { slug: string }) {
       await api.del(`/projects/${slug}/tokens/${id}`);
       await load();
       toast("Service token revoked.");
-    } catch (e: any) {
-      setErr(e.message);
+    } catch (e) {
+      setErr(errMessage(e));
     }
   }
 
@@ -174,7 +173,15 @@ function TokensSection({ slug }: { slug: string }) {
         {tokens.map((t) => (
           <Box
             key={t.id}
-            sx={{ p: 3, borderBottomWidth: 1, borderBottomStyle: "solid", borderColor: "border.muted", display: "flex", gap: 2, alignItems: "center" }}
+            sx={{
+              p: 3,
+              borderBottomWidth: 1,
+              borderBottomStyle: "solid",
+              borderColor: "border.muted",
+              display: "flex",
+              gap: 2,
+              alignItems: "center",
+            }}
           >
             <Text sx={{ fontWeight: "bold" }}>{t.name}</Text>
             <Text sx={{ fontFamily: "mono", color: "fg.muted" }}>{t.prefix}…</Text>

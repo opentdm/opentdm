@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Box, Button, Checkbox, Dialog, Flash, FormControl, IconButton, Text, TextInput } from "../ui/primer";
 import { FileIcon, KeyIcon, TableIcon, TrashIcon, UploadIcon } from "@primer/octicons-react";
 import { api, Config } from "../api";
+import { errMessage } from "../lib/errors";
 import { parseDotenv } from "../lib/dotenv";
 import { parseProperties } from "../lib/properties";
 import { useToast } from "../lib/toast";
@@ -97,7 +98,11 @@ export default function AddObjectDialog({
           return;
         }
         if (FILE_FORMATS.includes(upload.ext)) {
-          const created = await api.post<Config>(`/projects/${slug}/configs`, { kind: "file", format: upload.ext, name: nm });
+          const created = await api.post<Config>(`/projects/${slug}/configs`, {
+            kind: "file",
+            format: upload.ext,
+            name: nm,
+          });
           await api.putRaw(
             `/projects/${slug}/configs/${created.id}/blob?env=base`,
             upload.text,
@@ -109,10 +114,14 @@ export default function AddObjectDialog({
         throw new Error(`Unsupported file type: .${upload.ext}`);
       }
       nm = nm || "new-object";
-      const created = await api.post<Config>(`/projects/${slug}/configs`, { kind: "variable", format: varFormat, name: nm });
+      const created = await api.post<Config>(`/projects/${slug}/configs`, {
+        kind: "variable",
+        format: varFormat,
+        name: nm,
+      });
       finish(created.id);
-    } catch (e: any) {
-      setErr(e.message);
+    } catch (e) {
+      setErr(errMessage(e));
       setBusy(false);
     }
   }
@@ -169,7 +178,12 @@ export default function AddObjectDialog({
                   {uploadType} · {upload.size} bytes · {upload.lines} lines
                 </Text>
               </Box>
-              <IconButton icon={TrashIcon} aria-label="Remove file" variant="invisible" onClick={() => setUpload(null)} />
+              <IconButton
+                icon={TrashIcon}
+                aria-label="Remove file"
+                variant="invisible"
+                onClick={() => setUpload(null)}
+              />
             </Box>
           ) : (
             <button
@@ -204,9 +218,7 @@ export default function AddObjectDialog({
           </FormControl>
         )}
 
-        {!upload && (
-          <Flash>No file? An empty variable bundle is created — add keys in the editor.</Flash>
-        )}
+        {!upload && <Flash>No file? An empty variable bundle is created — add keys in the editor.</Flash>}
 
         <Box sx={{ display: "flex", gap: 2, justifyContent: "flex-end" }}>
           <Button type="button" onClick={onClose}>

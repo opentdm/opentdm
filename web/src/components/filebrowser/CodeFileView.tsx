@@ -1,6 +1,7 @@
 import { ReactNode, useEffect, useState } from "react";
 import { Box, Flash, Spinner } from "../../ui/primer";
 import { api, Config } from "../../api";
+import { errMessage } from "../../lib/errors";
 import { buildRows, resolvedEntries, ResolvedEntry } from "../../lib/resolve";
 
 const MASK = "••••••••";
@@ -41,7 +42,7 @@ export default function CodeFileView({ slug, config, env, reveal, refreshToken, 
       }
     };
     load()
-      .catch((e: any) => !cancelled && setErr(e.message))
+      .catch((e) => !cancelled && setErr(errMessage(e)))
       .finally(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;
@@ -69,8 +70,7 @@ export default function CodeFileView({ slug, config, env, reveal, refreshToken, 
         {err}
       </Flash>
     );
-  if (isVar && entries.length === 0)
-    return <div className="otdm-cf-empty"># (empty for this environment)</div>;
+  if (isVar && entries.length === 0) return <div className="otdm-cf-empty"># (empty for this environment)</div>;
 
   return (
     <div className="otdm-cf">

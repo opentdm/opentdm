@@ -38,11 +38,20 @@ export default function ProjectCard({ project, isFav, onToggleFav }: ProjectCard
         </div>
         <div className="otdm-pcard-desc">{project.description || "No description."}</div>
         <div className="otdm-pcard-foot">
-          <span className="cell"><FileDirectoryIcon size={14} />{project.object_count ?? 0} objects</span>
+          <span className="cell">
+            <FileDirectoryIcon size={14} />
+            {project.object_count ?? 0} objects
+          </span>
           <span>·</span>
-          <span className="cell"><ServerIcon size={14} />{project.env_count ?? 0} envs</span>
+          <span className="cell">
+            <ServerIcon size={14} />
+            {project.env_count ?? 0} envs
+          </span>
           <span>·</span>
-          <span className="cell"><PeopleIcon size={14} />{project.member_count ?? 0} members</span>
+          <span className="cell">
+            <PeopleIcon size={14} />
+            {project.member_count ?? 0} members
+          </span>
         </div>
       </RouterLink>
       <button

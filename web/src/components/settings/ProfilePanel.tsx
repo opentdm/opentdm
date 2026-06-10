@@ -111,16 +111,34 @@ export default function ProfilePanel({ me }: { me: User }) {
         {pwErr && <Flash variant="danger">{pwErr}</Flash>}
         <FormControl>
           <FormControl.Label>Current password</FormControl.Label>
-          <TextInput block type="password" value={cur} onChange={(e) => setCur(e.target.value)} autoComplete="current-password" />
+          <TextInput
+            block
+            type="password"
+            value={cur}
+            onChange={(e) => setCur(e.target.value)}
+            autoComplete="current-password"
+          />
         </FormControl>
         <FormControl>
           <FormControl.Label>New password</FormControl.Label>
-          <TextInput block type="password" value={next} onChange={(e) => setNext(e.target.value)} autoComplete="new-password" />
+          <TextInput
+            block
+            type="password"
+            value={next}
+            onChange={(e) => setNext(e.target.value)}
+            autoComplete="new-password"
+          />
           <FormControl.Caption>At least 8 characters.</FormControl.Caption>
         </FormControl>
         <FormControl>
           <FormControl.Label>Confirm new password</FormControl.Label>
-          <TextInput block type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" />
+          <TextInput
+            block
+            type="password"
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            autoComplete="new-password"
+          />
         </FormControl>
         <Box>
           <Button type="submit" variant="primary" disabled={pwBusy || !cur || !next || !confirm}>

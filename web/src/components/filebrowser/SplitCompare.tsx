@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Box, Button, Flash, IconButton, Spinner, Text } from "../../ui/primer";
 import { PlusIcon, XIcon } from "@primer/octicons-react";
 import { api, Config, Environment } from "../../api";
+import { errMessage } from "../../lib/errors";
 import { buildResolvedMap, buildRows, diffLines, diffMaps, ResolvedEntry } from "../../lib/resolve";
 import BranchEnvMenu from "./BranchEnvMenu";
 
@@ -61,7 +62,7 @@ export default function SplitCompare({ slug, config, envs, panes, setPanes, reve
       }
     };
     load()
-      .catch((e: any) => !cancelled && setErr(e.message))
+      .catch((e) => !cancelled && setErr(errMessage(e)))
       .finally(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;

@@ -278,8 +278,7 @@ export const api = {
   // --- audit / activity (keyset-paginated; returns entries + next cursor) ---
   listProjectAudit: (slug: string, before?: string) =>
     auditPage(`/projects/${slug}/audit?limit=50${before ? `&before=${encodeURIComponent(before)}` : ""}`),
-  listAudit: (before?: string) =>
-    auditPage(`/audit?limit=50${before ? `&before=${encodeURIComponent(before)}` : ""}`),
+  listAudit: (before?: string) => auditPage(`/audit?limit=50${before ? `&before=${encodeURIComponent(before)}` : ""}`),
 
   // --- admin user directory ---
   listUsers: () => request<AdminUser[]>("GET", `/users`),
@@ -297,7 +296,10 @@ export const api = {
   getItems: (slug: string, configId: string, env: string) =>
     request<Item[]>("GET", `/projects/${slug}/configs/${configId}/items?env=${encodeURIComponent(env)}`),
   putItems: (slug: string, configId: string, env: string, items: Item[], comment?: string) =>
-    request<unknown>("PUT", `/projects/${slug}/configs/${configId}/items?env=${encodeURIComponent(env)}`, { items, comment }),
+    request<unknown>("PUT", `/projects/${slug}/configs/${configId}/items?env=${encodeURIComponent(env)}`, {
+      items,
+      comment,
+    }),
   // Per-file resolve: a single config's effective env (base → env override,
   // tombstones), rendered server-side. Secrets are masked by default so the
   // preview is safe to screen-share.

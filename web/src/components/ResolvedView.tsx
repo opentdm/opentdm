@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Box, Button, Checkbox, Flash, FormControl, Select, Text } from "../ui/primer";
 import { CopyIcon } from "@primer/octicons-react";
 import { api, Config, Environment } from "../api";
+import { errMessage } from "../lib/errors";
 
 const FORMATS = ["dotenv", "json", "shell", "yaml", "properties"];
 
@@ -38,9 +39,9 @@ export default function ResolvedView({ slug, config, envs, initialEnv, refreshTo
       .then((t) => {
         if (!cancelled) setOut(t);
       })
-      .catch((e: any) => {
+      .catch((e) => {
         if (!cancelled) {
-          setErr(e.message);
+          setErr(errMessage(e));
           setOut("");
         }
       })

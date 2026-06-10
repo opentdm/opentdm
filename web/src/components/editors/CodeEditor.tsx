@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect, useState } from "react";
 import { Box, Button, Flash, Spinner, Text } from "../../ui/primer";
 import { api, Config } from "../../api";
+import { errMessage } from "../../lib/errors";
 import { useToast } from "../../lib/toast";
 import type { EditorLanguage } from "./CodeMirrorLazy";
 
@@ -47,8 +48,8 @@ export default function CodeEditor({ slug, config, layer, readOnly }: CodeEditor
     try {
       setText(config.format === "json" ? formatJson(text) : formatXml(text));
       toast("Formatted.", "default");
-    } catch (e: any) {
-      setErr(`Cannot format: ${e.message}`);
+    } catch (e) {
+      setErr(`Cannot format: ${errMessage(e)}`);
     }
   }
 
@@ -66,8 +67,8 @@ export default function CodeEditor({ slug, config, layer, readOnly }: CodeEditor
         contentType[config.format] || "application/octet-stream",
       );
       toast(`Saved ${layer}.`);
-    } catch (e: any) {
-      setErr(e.message);
+    } catch (e) {
+      setErr(errMessage(e));
     }
   }
 
@@ -79,8 +80,22 @@ export default function CodeEditor({ slug, config, layer, readOnly }: CodeEditor
           {err}
         </Flash>
       )}
-      <Box sx={{ borderWidth: 1, borderStyle: "solid", borderColor: "border.default", borderRadius: 2, overflow: "hidden" }}>
-        <Suspense fallback={<Box sx={{ p: 3 }}><Spinner size="small" /></Box>}>
+      <Box
+        sx={{
+          borderWidth: 1,
+          borderStyle: "solid",
+          borderColor: "border.default",
+          borderRadius: 2,
+          overflow: "hidden",
+        }}
+      >
+        <Suspense
+          fallback={
+            <Box sx={{ p: 3 }}>
+              <Spinner size="small" />
+            </Box>
+          }
+        >
           <CodeMirrorLazy value={text} onChange={setText} language={language} readOnly={readOnly} />
         </Suspense>
       </Box>
@@ -137,8 +152,8 @@ function validate(format: string, text: string): string {
   if (format === "json") {
     try {
       JSON.parse(text);
-    } catch (e: any) {
-      return `Invalid JSON: ${e.message}`;
+    } catch (e) {
+      return `Invalid JSON: ${errMessage(e)}`;
     }
   } else if (format === "xml") {
     const doc = new DOMParser().parseFromString(text, "application/xml");

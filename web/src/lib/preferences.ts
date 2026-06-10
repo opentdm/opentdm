@@ -16,7 +16,9 @@ const VALID_MODES: readonly ColorMode[] = ["light", "dark", "auto"];
 
 function normalize(p: { colorMode?: unknown; favourites?: unknown }): Preferences {
   const colorMode = VALID_MODES.includes(p?.colorMode as ColorMode) ? (p.colorMode as ColorMode) : "auto";
-  const favourites = Array.isArray(p?.favourites) ? (p.favourites as unknown[]).filter((x): x is string => typeof x === "string") : [];
+  const favourites = Array.isArray(p?.favourites)
+    ? (p.favourites as unknown[]).filter((x): x is string => typeof x === "string")
+    : [];
   return { colorMode, favourites };
 }
 
@@ -80,7 +82,9 @@ function persistServer() {
   if (!hydrated) return;
   if (saveTimer) window.clearTimeout(saveTimer);
   saveTimer = window.setTimeout(() => {
-    void api.put("/auth/me/preferences", { color_mode: current.colorMode, favourites: current.favourites }).catch(() => {});
+    void api
+      .put("/auth/me/preferences", { color_mode: current.colorMode, favourites: current.favourites })
+      .catch(() => {});
   }, 400);
 }
 

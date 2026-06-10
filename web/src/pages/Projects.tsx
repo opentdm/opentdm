@@ -18,7 +18,8 @@ const ROLE_ORDER = ["owner", "editor", "viewer"];
 function sortProjects(list: Project[], sort: SortKey): Project[] {
   const copy = list.slice();
   if (sort === "name") copy.sort((a, b) => a.name.localeCompare(b.name));
-  else if (sort === "role") copy.sort((a, b) => (ROLE_RANK[a.your_role ?? "viewer"] ?? 9) - (ROLE_RANK[b.your_role ?? "viewer"] ?? 9));
+  else if (sort === "role")
+    copy.sort((a, b) => (ROLE_RANK[a.your_role ?? "viewer"] ?? 9) - (ROLE_RANK[b.your_role ?? "viewer"] ?? 9));
   else if (sort === "recent") copy.sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
   return copy;
 }
@@ -42,9 +43,7 @@ export default function Projects() {
   const pinned = filtered.filter((p) => favs.has(p.slug));
   const rest = filtered.filter((p) => !favs.has(p.slug));
 
-  const card = (p: Project) => (
-    <ProjectCard key={p.id} project={p} isFav={favs.has(p.slug)} onToggleFav={toggle} />
-  );
+  const card = (p: Project) => <ProjectCard key={p.id} project={p} isFav={favs.has(p.slug)} onToggleFav={toggle} />;
 
   return (
     <Box>

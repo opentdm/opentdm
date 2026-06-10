@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { Box, Button, FormControl, Flash, Heading, TextInput } from "../ui/primer";
-import { api } from "../api";
+import { api, APIError } from "../api";
+import { errMessage } from "../lib/errors";
 
 export default function Login({ onDone }: { onDone: () => void }) {
   const [username, setUsername] = useState("");
@@ -15,8 +16,10 @@ export default function Login({ onDone }: { onDone: () => void }) {
     try {
       await api.post("/auth/login", { username, password });
       onDone();
-    } catch (e: any) {
-      setErr(e.status === 401 ? "Invalid username or password" : e.message || "Login failed");
+    } catch (e) {
+      setErr(
+        e instanceof APIError && e.status === 401 ? "Invalid username or password" : errMessage(e) || "Login failed",
+      );
     } finally {
       setBusy(false);
     }
