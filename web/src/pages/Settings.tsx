@@ -7,7 +7,7 @@ import AccessTokensPanel from "../components/settings/AccessTokensPanel";
 import AppearancePanel from "../components/settings/AppearancePanel";
 import ActivityPanel from "../components/settings/ActivityPanel";
 import UsersPanel from "../components/settings/UsersPanel";
-import Overline from "../components/Overline";
+import { Overline } from "../components/ui";
 
 const SECTIONS = ["account", "tokens", "appearance", "activity", "users"] as const;
 type Section = (typeof SECTIONS)[number];

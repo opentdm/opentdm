@@ -2,8 +2,7 @@ import { useEffect, useState } from "react";
 import { Box, Button, Checkbox, Flash, FormControl, Heading, Label, Spinner, Text } from "../../ui/primer";
 import { AdminUser, api } from "../../api";
 import { errMessage } from "../../lib/errors";
-import Overline from "../Overline";
-import Avatar from "../Avatar";
+import { Avatar, Overline } from "../ui";
 
 // Instance user directory (admin only). Moved from the old /users page into the
 // consolidated Settings → Instance admin → Users panel.

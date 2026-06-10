@@ -3,6 +3,7 @@ import { ChevronDownIcon, ChevronUpIcon, HistoryIcon } from "@primer/octicons-re
 import { Box, Button, Flash, Label, Text } from "../ui/primer";
 import { api, Config, DiffResult, VersionMeta } from "../api";
 import { errMessage } from "../lib/errors";
+import { Pill } from "./ui";
 
 interface VersionHistoryProps {
   slug: string;
@@ -69,7 +70,7 @@ export default function VersionHistory({ slug, config, layer, onRolledBack }: Ve
         versions.map((v) => (
           <Box key={v.version} sx={{ display: "flex", alignItems: "center", gap: 2, py: 1 }}>
             <Text sx={{ fontFamily: "mono", color: "fg.accent" }}>v{v.version}</Text>
-            {v.is_current && <Label className="otdm-pill-accent">current</Label>}
+            {v.is_current && <Pill>current</Pill>}
             <Text sx={{ color: "fg.muted", fontSize: 0 }}>{new Date(v.created_at).toLocaleString()}</Text>
             {v.comment && <Text sx={{ color: "fg.muted", fontSize: 0 }}>· {v.comment}</Text>}
             {v.added ? <Text sx={{ color: "fg.muted", fontSize: 0 }}>+{v.added}</Text> : null}

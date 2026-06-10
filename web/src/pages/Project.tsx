@@ -15,7 +15,7 @@ import { api, canWrite, Config, Environment, Project } from "../api";
 import { errMessage } from "../lib/errors";
 import ResolvedView from "../components/ResolvedView";
 import AddObjectDialog from "../components/AddObjectDialog";
-import Overline from "../components/Overline";
+import { Overline, MetaCell, Pill } from "../components/ui";
 
 export default function ProjectPage() {
   const { slug = "" } = useParams();
@@ -59,9 +59,7 @@ export default function ProjectPage() {
             <Text sx={{ color: "fg.muted", display: "block", mt: 1 }}>{project.description}</Text>
           )}
           <Box sx={{ mt: 2, display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
-            <Label variant="accent" className="otdm-pill-accent">
-              base
-            </Label>
+            <Pill>base</Pill>
             {envs.map((e) => (
               <Label key={e.id} variant="secondary">
                 {e.slug}
@@ -81,24 +79,12 @@ export default function ProjectPage() {
       {err && <Flash variant="danger">{err}</Flash>}
 
       <Box className="otdm-meta-grid">
-        <div className="otdm-meta-cell">
-          <div className="k">Objects</div>
-          <div className="v">{configs.length}</div>
-        </div>
-        <div className="otdm-meta-cell">
-          <div className="k">Environments</div>
-          <div className="v">{envs.length}</div>
-        </div>
-        <div className="otdm-meta-cell">
-          <div className="k">Members</div>
-          <div className="v">{memberCount ?? "—"}</div>
-        </div>
-        <div className="otdm-meta-cell">
-          <div className="k">Your role</div>
-          <div className="v" style={{ textTransform: "capitalize", fontSize: 15, fontWeight: 600 }}>
-            {project.your_role ?? "—"}
-          </div>
-        </div>
+        <MetaCell label="Objects">{configs.length}</MetaCell>
+        <MetaCell label="Environments">{envs.length}</MetaCell>
+        <MetaCell label="Members">{memberCount ?? "—"}</MetaCell>
+        <MetaCell label="Your role" valueStyle={{ textTransform: "capitalize", fontSize: 15, fontWeight: 600 }}>
+          {project.your_role ?? "—"}
+        </MetaCell>
       </Box>
 
       <ObjectsSection

@@ -10,7 +10,7 @@ import {
   SignOutIcon,
   SearchIcon,
 } from "@primer/octicons-react";
-import Avatar from "./Avatar";
+import { Avatar } from "./ui";
 import { User } from "../api";
 import { useProjectsCtx } from "../lib/projects";
 import { useFavourites } from "../lib/favourites";

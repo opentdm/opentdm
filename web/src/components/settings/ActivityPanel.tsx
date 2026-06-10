@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import { Box, Heading, Text } from "../../ui/primer";
 import { api } from "../../api";
 import AuditFeed from "../AuditFeed";
-import Overline from "../Overline";
+import { Overline } from "../ui";
 
 // Instance-wide activity (admin only). Reuses the keyset-paginated AuditFeed.
 export default function ActivityPanel() {

@@ -3,13 +3,7 @@ import { ShieldLockIcon } from "@primer/octicons-react";
 import { Box, Button, Flash, FormControl, Heading, Label, Text, TextInput } from "../../ui/primer";
 import { api, User } from "../../api";
 import { useToast } from "../../lib/toast";
-import Overline from "../Overline";
-
-function initials(name: string): string {
-  const parts = name.split(/[.\-_@\s]+/).filter(Boolean);
-  const letters = parts.length >= 2 ? parts[0][0] + parts[1][0] : name.slice(0, 2);
-  return letters.toUpperCase();
-}
+import { Overline, initials } from "../ui";
 
 export default function ProfilePanel({ me }: { me: User }) {
   const toast = useToast();
